@@ -175,9 +175,43 @@ namespace RectifyUtils
 	/// </summary>
 	public class RectShape
 	{
+
 		public List<RectEdge> Perimeter { get; set; } = new List<RectEdge>();
 		public List<Vertex> Vertices { get; set; } = new List<Vertex>();
-		public List<RectShape> Holes { get; set; } = new List<RectShape>(); //easier when empty;
+
+		private List<RectShape> _holes = new List<RectShape>(); //easier when empty;
+		public List<RectShape> Holes
+		{
+			get
+			{
+				return _holes; //this should be an immutable list somehow, we want this list to be modified only by the setter or the method below
+			}
+			set
+			{
+				_holes = value;
+				List<Vertex> holeVerts = new List<Vertex>();
+				foreach (RectShape rs in value)
+				{
+					holeVerts.AddRange(rs.Vertices);
+				}
+			}
+		}
+		public List<Vertex> HoleVertices { get; private set; } = new List<Vertex>(); //this should be immutable as above. it could be modified currently, but never SHOULD be outside this class.
+
+		internal void AddHole(RectShape foundHole)
+		{
+			_holes.Add(foundHole);
+			HoleVertices.AddRange(foundHole.Vertices);
+		}
+
+		internal void RemoveHole(RectShape foundHole)
+		{
+			_holes.Remove(foundHole);
+			foreach (Vertex v in foundHole.Vertices)
+			{
+				HoleVertices.Remove(v);
+			}
+		}
 	}
 
 

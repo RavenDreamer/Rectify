@@ -192,15 +192,15 @@ namespace RectifyTest
 
 			//bottom stair step shape decomps
 			Assert.AreEqual(14, subsubPolygons[0].Perimeter.Count, "Had wrong perimeter east-most bottom shape");
-			Assert.AreEqual(14, subsubPolygons[1].Perimeter.Count, "Had wrong perimeter middle bottom shape");
-			Assert.AreEqual(16, subsubPolygons[2].Perimeter.Count, "Had wrong perimeter west-most bottom shape");
+			Assert.AreEqual(18, subsubPolygons[1].Perimeter.Count, "Had wrong perimeter middle bottom shape");
+			Assert.AreEqual(6, subsubPolygons[2].Perimeter.Count, "Had wrong perimeter west-most bottom shape");
 
 			//bottom middle thin shape
 			Assert.AreEqual(22, subsubPolygons[3].Perimeter.Count, "Had wrong perimeter for bottom middle thin shape");
 
 			//top bent shape
-			Assert.AreEqual(10, subsubPolygons[4].Perimeter.Count, "Had wrong perimeter for east-most top shape");
-			Assert.AreEqual(8, subsubPolygons[5].Perimeter.Count, "Had wrong perimeter for west-most top shape");
+			Assert.AreEqual(6, subsubPolygons[4].Perimeter.Count, "Had wrong perimeter for top-most top shape");
+			Assert.AreEqual(12, subsubPolygons[5].Perimeter.Count, "Had wrong perimeter for west-most top shape");
 
 			//squarish shape
 			Assert.AreEqual(24, subsubPolygons[6].Perimeter.Count, "Had wrong perimeter for squarsh shape");
