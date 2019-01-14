@@ -189,11 +189,7 @@ namespace RectifyUtils
 			set
 			{
 				_holes = value;
-				List<Vertex> holeVerts = new List<Vertex>();
-				foreach (RectShape rs in value)
-				{
-					holeVerts.AddRange(rs.Vertices);
-				}
+				UpdateHoleVerts();
 			}
 		}
 		public List<Vertex> HoleVertices { get; private set; } = new List<Vertex>(); //this should be immutable as above. it could be modified currently, but never SHOULD be outside this class.
@@ -211,6 +207,16 @@ namespace RectifyUtils
 			{
 				HoleVertices.Remove(v);
 			}
+		}
+
+		internal void UpdateHoleVerts()
+		{
+			List<Vertex> holeVerts = new List<Vertex>();
+			foreach (RectShape rs in _holes)
+			{
+				holeVerts.AddRange(rs.Vertices);
+			}
+			HoleVertices = holeVerts;
 		}
 	}
 

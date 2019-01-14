@@ -32,6 +32,36 @@ namespace RectifyTest
 			};
 		}
 
+		public static int[,] SquareWithSquareHole()
+		{
+			return new int[,]
+			{
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,1,1,0 },
+				{ 0,0,0,0,0,1,1,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 }
+			};
+		}
+
+		public static int[,] SquareWithTwoSquareHole()
+		{
+			return new int[,]
+			{
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,1,1,1,0 },
+				{ 0,0,0,0,1,1,1,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,1,1,1,0,0 },
+				{ 0,0,0,1,1,1,0,0 },
+				{ 0,0,0,0,0,0,0,0 }
+			};
+		}
+
 		internal static Tuple<HashSet<RectEdgeEdge>, List<RectFlowNode>> GetAlternatingNodesMatching()
 		{
 			HashSet<RectEdgeEdge> edges = new HashSet<RectEdgeEdge>();

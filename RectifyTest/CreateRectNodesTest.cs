@@ -164,6 +164,194 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
+		public void SquareWithSquareHolePickChordsTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.SquareWithSquareHole());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(1, subpolygons.Count, "Didn't get 1 subpolygon as expected");
+			Assert.AreEqual(4, subpolygons[0].Vertices.Count, "Had wrong number of vertices for main square");
+
+			//perimeters are traversable.
+			foreach (var sp in subpolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(Rectify.SecondLevelDecomposition(sp));
+			}
+
+			//perimeters are traversable.
+			foreach (var sp in subsubPolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+				Assert.IsTrue(sp.Vertices.Count == 4, "Not a rectangle, had more than 4 verts");
+			}
+
+			Assert.AreEqual(4, subsubPolygons.Count, "Did not decomp into the minimum 4 polygons");
+		}
+
+		[TestMethod]
+		public void SquareWithTwoSquareHolesPickChordsTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.SquareWithTwoSquareHole());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(1, subpolygons.Count, "Didn't get 1 subpolygon as expected");
+			Assert.AreEqual(4, subpolygons[0].Vertices.Count, "Had wrong number of vertices for main square");
+
+			//perimeters are traversable.
+			foreach (var sp in subpolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(Rectify.SecondLevelDecomposition(sp));
+			}
+
+			//perimeters are traversable.
+			foreach (var sp in subsubPolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+				Assert.IsTrue(sp.Vertices.Count == 4, "Not a rectangle, had more than 4 verts");
+			}
+
+			Assert.AreEqual(7, subsubPolygons.Count, "Did not decomp into the minimum 7 polygons");
+		}
+
+		[TestMethod]
 		public void BinaryConcaveShapeNoHolesSecondLevelDecompTest()
 		{
 			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
@@ -192,15 +380,15 @@ namespace RectifyTest
 
 			//bottom stair step shape decomps
 			Assert.AreEqual(14, subsubPolygons[0].Perimeter.Count, "Had wrong perimeter east-most bottom shape");
-			Assert.AreEqual(18, subsubPolygons[1].Perimeter.Count, "Had wrong perimeter middle bottom shape");
-			Assert.AreEqual(6, subsubPolygons[2].Perimeter.Count, "Had wrong perimeter west-most bottom shape");
+			Assert.AreEqual(6, subsubPolygons[1].Perimeter.Count, "Had wrong perimeter middle bottom shape");
+			Assert.AreEqual(18, subsubPolygons[2].Perimeter.Count, "Had wrong perimeter west-most bottom shape");
 
 			//bottom middle thin shape
 			Assert.AreEqual(22, subsubPolygons[3].Perimeter.Count, "Had wrong perimeter for bottom middle thin shape");
 
 			//top bent shape
-			Assert.AreEqual(6, subsubPolygons[4].Perimeter.Count, "Had wrong perimeter for top-most top shape");
-			Assert.AreEqual(12, subsubPolygons[5].Perimeter.Count, "Had wrong perimeter for west-most top shape");
+			Assert.AreEqual(12, subsubPolygons[4].Perimeter.Count, "Had wrong perimeter for top-most top shape");
+			Assert.AreEqual(6, subsubPolygons[5].Perimeter.Count, "Had wrong perimeter for west-most top shape");
 
 			//squarish shape
 			Assert.AreEqual(24, subsubPolygons[6].Perimeter.Count, "Had wrong perimeter for squarsh shape");
@@ -209,9 +397,6 @@ namespace RectifyTest
 		[TestMethod]
 		public void KoenigsAlgorithmAlternatingPathTest()
 		{
-
-
-
 			var data = TestData.GetAlternatingNodesMatching();
 
 			var uList = data.Item1.Select(ree => ree.FirstEdge);//maxmatching is <horizontal, vertical>, so only need to look for the firstEdge
