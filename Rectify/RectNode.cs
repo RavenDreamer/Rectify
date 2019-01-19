@@ -11,6 +11,7 @@ namespace RectifyUtils
 		None,
 		Wall,
 		Aperture,
+		BurnedHoleEdge, //the outside edge of a hole that's already been catalogued.
 	}
 
 	public enum FlowType
@@ -26,7 +27,7 @@ namespace RectifyUtils
 		East = 0,
 		South = 1,
 		West = 2,
-		North = 3, //TODO: make these 1,2,4,8, once it stops breaking the tests and add "Unknown - 0"
+		North = 3, //Potential TODO: make these 1,2,4,8, once it stops breaking the tests and add "Unknown - 0" ?
 	}
 
 	public class DirectionVector

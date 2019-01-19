@@ -352,6 +352,100 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
+		public void SquareWithCogridHolesPickChordsTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.SquareWithCogridHoles());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(1, subpolygons.Count, "Didn't get 1 subpolygon as expected");
+			Assert.AreEqual(4, subpolygons[0].Vertices.Count, "Had wrong number of vertices for main square");
+
+			//perimeters are traversable.
+			foreach (var sp in subpolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(Rectify.SecondLevelDecomposition(sp));
+			}
+
+			//perimeters are traversable.
+			foreach (var sp in subsubPolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+				Assert.IsTrue(sp.Vertices.Count == 4, "Not a rectangle, had more than 4 verts");
+			}
+
+			Assert.AreEqual(6, subsubPolygons.Count, "Did not decomp into the minimum 6 polygons");
+		}
+
+		[TestMethod]
 		public void BinaryConcaveShapeNoHolesSecondLevelDecompTest()
 		{
 			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
@@ -387,6 +481,7 @@ namespace RectifyTest
 			Assert.AreEqual(22, subsubPolygons[3].Perimeter.Count, "Had wrong perimeter for bottom middle thin shape");
 
 			//top bent shape
+			//I wonder if these are swapping b/c Find is non deterministic?
 			Assert.AreEqual(12, subsubPolygons[4].Perimeter.Count, "Had wrong perimeter for top-most top shape");
 			Assert.AreEqual(6, subsubPolygons[5].Perimeter.Count, "Had wrong perimeter for west-most top shape");
 
