@@ -333,6 +333,33 @@ namespace RectifyUtils
 			};
 		}
 
+		public static List<RectifyRectangle> MakeRectangles(int[,] v)
+		{
+			var result = GetRectNodes(v);
+			var output = TraverseShapeOutlines(result);
+			var polygons = FindVertsFromEdges(output);
+
+			var subpolygons = new List<RectShape>();
+			foreach (var p in polygons)
+			{
+				subpolygons.AddRange(FirstLevelDecomposition(p));
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(SecondLevelDecomposition(sp));
+			}
+
+			var rectangles = new List<RectifyRectangle>();
+			foreach (RectShape shape in subsubPolygons)
+			{
+				rectangles.Add(new RectifyRectangle(shape));
+			}
+
+			return rectangles;
+		}
+
 		///// <summary>
 		///// Finds the initial list of cogrid chords to cut for decomposition
 		///// </summary>

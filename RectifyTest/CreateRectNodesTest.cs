@@ -446,6 +446,13 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
+		public void MakeRectanglesTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.BinaryConcaveShapeNoHoles());
+			Assert.AreEqual(17, result.Count, "did not make 14 total rectangles as expected");
+		}
+
+		[TestMethod]
 		public void BinaryConcaveShapeNoHolesSecondLevelDecompTest()
 		{
 			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());

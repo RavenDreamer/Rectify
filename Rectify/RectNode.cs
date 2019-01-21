@@ -221,6 +221,156 @@ namespace RectifyUtils
 		}
 	}
 
+	/// <summary>
+	/// Represents a rectangle (4 vertices), a perimeter of edges, a list of which rectangles
+	/// this rectangle neighbors, and which edges allow connections to those neighbors
+	/// </summary>
+	public class RectifyRectangle
+	{
+
+		public class EdgePair
+		{
+			public EdgeType Edge { get; set; }
+			public RectifyRectangle Neighbor { get; set; }
+			public EdgePair(EdgeType edge, RectifyRectangle neighbor)
+			{
+				Edge = edge;
+				Neighbor = neighbor;
+			}
+		}
+
+		private readonly EdgePair[] LeftEdge;
+		private readonly EdgePair[] RightEdge;
+		private readonly EdgePair[] TopEdge;
+		private readonly EdgePair[] BottomEdge;
+
+		private readonly Position topLeft;
+		private readonly Position bottomRight;
+
+		public RectifyRectangle(RectShape shape, bool validateRectangle = true)
+		{
+			if (validateRectangle)
+			{
+				if (shape.Vertices.Count != 4)
+				{
+					throw new Exception("Rectangle w/o exactly 4 vertices");
+				}
+				RectEdge startEdge = shape.Perimeter.First();
+				RectEdge endEdge = startEdge;
+				for (int i = 0; i < shape.Perimeter.Count; i++)
+				{
+					endEdge = endEdge.Next;
+				}
+				if (startEdge != endEdge)
+				{
+					throw new Exception("Rectangle w/o contiguous perimeter");
+				}
+			}
+			//get the defining positions from the verts
+			//temporary assignment
+			topLeft = shape.Vertices.First().Vert;
+			bottomRight = topLeft;
+			for (int i = 1; i < 4; i++)
+			{
+				if (shape.Vertices[i].Vert.xPos < topLeft.xPos ||
+					shape.Vertices[i].Vert.yPos < topLeft.yPos)
+				{
+					topLeft = shape.Vertices[i].Vert;
+				}
+
+				if (shape.Vertices[i].Vert.xPos > bottomRight.xPos ||
+					shape.Vertices[i].Vert.yPos > bottomRight.yPos)
+				{
+					bottomRight = shape.Vertices[i].Vert;
+				}
+			}
+
+			//instantiate the edgearrays
+
+			//get all the edges w/ firstPosition x == topLeft.x && secondPosition x == topLeft.x
+			LeftEdge = new EdgePair[this.Height];
+			var workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.xPos == topLeft.xPos && e.SecondPosition.xPos == topLeft.xPos).OrderBy(e => e.SecondPosition.yPos).ToArray();
+			for (int i = 0; i < workingEdges.Count(); i++)
+			{
+				LeftEdge[i] = new EdgePair(workingEdges[i].EdgeType, null);
+			}
+
+			RightEdge = new EdgePair[this.Height];
+			workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.xPos == bottomRight.xPos && e.SecondPosition.xPos == bottomRight.xPos).OrderBy(e => e.FirstPosition.yPos).ToArray();
+			for (int i = 0; i < workingEdges.Count(); i++)
+			{
+				RightEdge[i] = new EdgePair(workingEdges[i].EdgeType, null);
+			}
+
+			//get all the edges w/ firstPosition y == topLeft.y && secondPosition y == topLeft.y
+			TopEdge = new EdgePair[this.Width];
+			workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.yPos == topLeft.yPos && e.SecondPosition.yPos == topLeft.yPos).OrderBy(e => e.FirstPosition.xPos).ToArray();
+			for (int i = 0; i < workingEdges.Count(); i++)
+			{
+				TopEdge[i] = new EdgePair(workingEdges[i].EdgeType, null);
+			}
+
+			BottomEdge = new EdgePair[this.Width];
+			workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.yPos == bottomRight.yPos && e.SecondPosition.yPos == bottomRight.yPos).OrderBy(e => e.SecondPosition.xPos).ToArray();
+			for (int i = 0; i < workingEdges.Count(); i++)
+			{
+				BottomEdge[i] = new EdgePair(workingEdges[i].EdgeType, null);
+			}
+		}
+
+		/// <summary>
+		/// Returns the minimum distance of this rectangle's corners to a specified point
+		/// </summary>
+		/// <param name="p"></param>
+		/// <returns></returns>
+		public int MinDistanceFrom(Position p)
+		{
+			//if the point is inside the rectangle, return 0.
+			if (topLeft.xPos <= p.xPos && p.xPos <= bottomRight.xPos &&
+				topLeft.yPos <= p.yPos && p.yPos <= bottomRight.yPos)
+			{
+				return 0;
+			}
+
+			List<int> distList = new List<int>(4);
+			distList.Add(DistanceBetween(p, topLeft));
+			distList.Add(DistanceBetween(p, new Position(topLeft.xPos, bottomRight.yPos)));
+			distList.Add(DistanceBetween(p, new Position(bottomRight.xPos, topLeft.yPos)));
+			distList.Add(DistanceBetween(p, bottomRight));
+			distList.Sort();
+			return distList.First();
+
+		}
+
+		private int DistanceBetween(Position p, Position other)
+		{
+			return (int)Math.Sqrt(((p.xPos - other.xPos) * (p.xPos - other.xPos)) + ((p.yPos - other.yPos) * (p.yPos - other.yPos)));
+		}
+
+		public Position Offset
+		{
+			get
+			{
+				return new Position(topLeft);
+			}
+		}
+
+		public int Width
+		{
+			get
+			{
+				return bottomRight.xPos - topLeft.xPos;
+			}
+		}
+
+		public int Height
+		{
+			get
+			{
+				return bottomRight.yPos - topLeft.yPos;
+			}
+		}
+	}
 
 
 	/// <summary>
