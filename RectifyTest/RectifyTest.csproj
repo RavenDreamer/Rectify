@@ -53,13 +53,13 @@
     <Compile Include="TestData.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Rectify\Rectify.csproj">
-      <Project>{2062e42a-6027-459e-a94d-0475468cb541}</Project>
-      <Name>Rectify</Name>
-    </ProjectReference>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <ProjectReference Include="..\Rectify\Rectify.csproj">
+      <Project>{277C75FA-E97A-4BDA-A750-F0A8F7B3816C}</Project>
+      <Name>Rectify</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

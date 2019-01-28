@@ -111,7 +111,7 @@ namespace RectifyUtils
 		{
 			this.IsConcave = false;
 		}
-		public Position Vert { get; private set; }
+		public Position VertPosition { get; private set; }
 		public bool IsConcave { get; private set; }
 		public bool IsConvex
 		{
@@ -123,7 +123,7 @@ namespace RectifyUtils
 
 		public Vertex(Position point, bool concave)
 		{
-			this.Vert = point;
+			this.VertPosition = point;
 			this.IsConcave = concave;
 		}
 
@@ -143,7 +143,7 @@ namespace RectifyUtils
 			}
 
 			// Return true if the fields match:
-			return IsConcave == v.IsConcave && Vert.Equals(v.Vert);
+			return IsConcave == v.IsConcave && VertPosition.Equals(v.VertPosition);
 		}
 
 		public bool Equals(Vertex v)
@@ -155,19 +155,19 @@ namespace RectifyUtils
 			}
 
 			// Return true if the fields match:
-			return IsConcave == v.IsConcave && Vert.Equals(v.Vert);
+			return IsConcave == v.IsConcave && VertPosition.Equals(v.VertPosition);
 		}
 
 		//copied from MSDN's "TwoDPoint" implementation
 		public override int GetHashCode()
 		{
-			return Vert.GetHashCode() + (IsConcave ? 1 : 0);
+			return VertPosition.GetHashCode() + (IsConcave ? 1 : 0);
 		}
 
 
 		public override string ToString()
 		{
-			return "Concave: " + IsConcave + " Vertex: " + Vert.ToString();
+			return "Concave: " + IsConcave + " Vertex: " + VertPosition.ToString();
 		}
 	}
 
@@ -268,20 +268,20 @@ namespace RectifyUtils
 			}
 			//get the defining positions from the verts
 			//temporary assignment
-			topLeft = shape.Vertices.First().Vert;
+			topLeft = shape.Vertices.First().VertPosition;
 			bottomRight = topLeft;
 			for (int i = 1; i < 4; i++)
 			{
-				if (shape.Vertices[i].Vert.xPos < topLeft.xPos ||
-					shape.Vertices[i].Vert.yPos < topLeft.yPos)
+				if (shape.Vertices[i].VertPosition.xPos < topLeft.xPos ||
+					shape.Vertices[i].VertPosition.yPos < topLeft.yPos)
 				{
-					topLeft = shape.Vertices[i].Vert;
+					topLeft = shape.Vertices[i].VertPosition;
 				}
 
-				if (shape.Vertices[i].Vert.xPos > bottomRight.xPos ||
-					shape.Vertices[i].Vert.yPos > bottomRight.yPos)
+				if (shape.Vertices[i].VertPosition.xPos > bottomRight.xPos ||
+					shape.Vertices[i].VertPosition.yPos > bottomRight.yPos)
 				{
-					bottomRight = shape.Vertices[i].Vert;
+					bottomRight = shape.Vertices[i].VertPosition;
 				}
 			}
 
@@ -419,21 +419,21 @@ namespace RectifyUtils
 			get
 			{
 				var direct = this.HeadingVector;
-				if (direct.xPos == 0 && direct.yPos == 1)
+				if (direct.xPos == 0 && direct.yPos >= 1)
 				{
-					return global::RectifyUtils.Direction.South;
+					return Direction.South;
 				}
-				if (direct.xPos == 0 && direct.yPos == -1)
+				if (direct.xPos == 0 && direct.yPos <= -1)
 				{
-					return global::RectifyUtils.Direction.North;
+					return Direction.North;
 				}
-				if (direct.xPos == 1 && direct.yPos == 0)
+				if (direct.xPos >= 1 && direct.yPos == 0)
 				{
-					return global::RectifyUtils.Direction.East;
+					return Direction.East;
 				}
-				if (direct.xPos == -1 && direct.yPos == 0)
+				if (direct.xPos <= -1 && direct.yPos == 0)
 				{
-					return global::RectifyUtils.Direction.West;
+					return Direction.West;
 				}
 
 				throw new Exception("Unable to determine heading");
@@ -577,6 +577,23 @@ namespace RectifyUtils
 	}
 
 	/// <summary>
+	/// Helper tuple-class for breadth first search
+	/// </summary>
+	public class BFSFlowNode
+	{
+		//the node we're investigating
+		public RectFlowNode Node { get; set; }
+
+		//the path to get to the node. Node is not part of this list.
+		public List<RectFlowNode> Path { get; set; }
+
+		public BFSFlowNode(RectFlowNode node, List<RectFlowNode> path)
+		{
+			this.Node = node; this.Path = path;
+		}
+	}
+
+	/// <summary>
 	/// Node class used with calculating Maximal Flow Algorithm
 	/// </summary>
 	public class RectFlowNode
@@ -633,31 +650,17 @@ namespace RectifyUtils
 		/// </summary>
 		/// <param name="sinkNode"></param>
 		/// <returns></returns>
-		internal List<RectFlowNode> FindLinkedNode(RectFlowNode sinkNode)
+		internal bool FindLinkedNode(RectFlowNode sinkNode, out List<RectFlowNode> destNodes)
 		{
-			List<RectFlowNode> outList = new List<RectFlowNode>() { this };
-
 			if (this == sinkNode)
 			{
-				return outList;
+				destNodes = new List<RectFlowNode>() { this };
+				return true;
 			}
 			else
 			{
-				foreach (RectFlowNode rfn in DestinationNodes)
-				{
-					List<RectFlowNode> retList = rfn.FindLinkedNode(sinkNode);
-					if (retList == null)
-					{
-						continue;
-					}
-					else
-					{
-						outList.AddRange(retList);
-						return outList;
-					}
-				}
-				//none of the children could find it
-				return null;
+				destNodes = new List<RectFlowNode>(this.DestinationNodes);
+				return false;
 			}
 		}
 	}

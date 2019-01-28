@@ -16,16 +16,42 @@ namespace RectifyUtils
 		/// format to support passing data via instantiated arrays (see TestData)
 		/// </summary>
 		/// <param name="data"></param>
-		public static RectNode[,] GetRectNodes(int[,] data)
+		public static RectNode[,] GetRectNodes(int[,] data, Position targetminXY = null, Position targetmaxXY = null)
 		{
 			int maxWidth = data.GetLength(1);
 			int maxHeight = data.GetLength(0);
 
-			RectNode[,] output = new RectNode[maxWidth, maxHeight];
-
-			for (int h = 0; h < maxHeight; h++)
+			int lowX;
+			int lowY;
+			int highX;
+			int highY;
+			if (targetminXY == null)
 			{
-				for (int w = 0; w < maxWidth; w++)
+				lowX = 0;
+				lowY = 0;
+			}
+			else
+			{
+				lowX = targetminXY.xPos;
+				lowY = targetminXY.yPos;
+			}
+
+			if (targetmaxXY == null)
+			{
+				highX = maxWidth;
+				highY = maxHeight;
+			}
+			else
+			{
+				highX = targetmaxXY.xPos;
+				highY = targetmaxXY.yPos;
+			}
+
+			RectNode[,] output = new RectNode[highX - lowX, highY - lowY];
+
+			for (int h = lowY; h < highY; h++)
+			{
+				for (int w = lowX; w < highX; w++)
 				{
 					//for each cell, look at its neighbors
 					//this isn't maximally efficient, but suffices for testing for now
@@ -33,7 +59,7 @@ namespace RectifyUtils
 					RectNode rNode = new RectNode();
 
 					//west; if we're in-bounds and the westPeek is the same value, no wall
-					if (w > 0 && data[h, w - 1] == dataCell)
+					if (w > lowX && data[h, w - 1] == dataCell)
 					{
 						rNode.Edges.West = EdgeType.None;
 					}
@@ -43,7 +69,7 @@ namespace RectifyUtils
 					}
 
 					//East; if we're in-bounds and the eastPeek is the same value, no wall
-					if (w < maxWidth - 1 && data[h, w + 1] == dataCell)
+					if (w < highX - 1 && data[h, w + 1] == dataCell)
 					{
 						rNode.Edges.East = EdgeType.None;
 					}
@@ -54,7 +80,7 @@ namespace RectifyUtils
 
 					//South; if we're in-bounds and the southPeek is the same value, no wall
 					//this *is* South despite the weird offsets, because our data is in quadrant II
-					if (h < maxHeight - 1 && data[h + 1, w] == dataCell)
+					if (h < highY - 1 && data[h + 1, w] == dataCell)
 					{
 						rNode.Edges.South = EdgeType.None;
 					}
@@ -65,7 +91,7 @@ namespace RectifyUtils
 
 					//North; if we're in-bounds and the northPeek is the same value, no wall
 					//this *is* North despite the weird offsets, because our data is in quadrant II
-					if (h > 0 && data[h - 1, w] == dataCell)
+					if (h > lowY && data[h - 1, w] == dataCell)
 					{
 						rNode.Edges.North = EdgeType.None;
 					}
@@ -75,7 +101,7 @@ namespace RectifyUtils
 					}
 
 					//this will translate the width x height into a top-left Quadrant II type grid
-					output[w, h] = rNode;
+					output[w - lowX, h - lowY] = rNode;
 				}
 			}
 
@@ -333,9 +359,9 @@ namespace RectifyUtils
 			};
 		}
 
-		public static List<RectifyRectangle> MakeRectangles(int[,] v)
+		public static List<RectifyRectangle> MakeRectangles(int[,] v, Position minXY = null, Position maxXY = null)
 		{
-			var result = GetRectNodes(v);
+			var result = GetRectNodes(v, minXY, maxXY);
 			var output = TraverseShapeOutlines(result);
 			var polygons = FindVertsFromEdges(output);
 
@@ -594,13 +620,13 @@ namespace RectifyUtils
 			foreach (Vertex v in concaves)
 			{
 				//vertical cogrid chords
-				List<Vertex> vertCogrids = concaves.FindAll(q => q.Vert.xPos == v.Vert.xPos && q.Vert.yPos != v.Vert.yPos);
+				List<Vertex> vertCogrids = concaves.FindAll(q => q.VertPosition.xPos == v.VertPosition.xPos && q.VertPosition.yPos != v.VertPosition.yPos);
 				//it's only a valid chord if the shape doesn't have an edge at every step between the two verts.
 				Vertex topV;
 				Vertex bottomV;
 				foreach (Vertex cg in vertCogrids)
 				{
-					if (cg.Vert.yPos > v.Vert.yPos)
+					if (cg.VertPosition.yPos > v.VertPosition.yPos)
 					{
 						bottomV = cg;
 						topV = v;
@@ -611,17 +637,27 @@ namespace RectifyUtils
 						topV = cg;
 					}
 					//early out if we've already looked at these verts
-					RectEdge prospectiveEdge = new RectEdge(topV.Vert, bottomV.Vert, EdgeType.None);
+					RectEdge prospectiveEdge = new RectEdge(topV.VertPosition, bottomV.VertPosition, EdgeType.None);
 					if (vertEdges.Contains(prospectiveEdge)) continue;
 
 					//look to see if there is an open edge space in any point between the two verts
-					RectEdge interveningEdge = allPerimeters.Find(r => (r.FirstPosition.xPos == v.Vert.xPos &&
-																					   r.FirstPosition.yPos < bottomV.Vert.yPos &&
-																					   r.FirstPosition.yPos > topV.Vert.yPos) ||
-																					   (r.SecondPosition.xPos == v.Vert.xPos &&
-																					   r.SecondPosition.yPos < bottomV.Vert.yPos &&
-																					   r.SecondPosition.yPos > topV.Vert.yPos));
+					//find an edge in the perimeters where EITHER first or second position have:
+					// the x position equals the vertex x position and has a y Position that's below the bottom vert & above the top vert 
+					RectEdge interveningEdge = allPerimeters.Find(r => (r.FirstPosition.xPos == v.VertPosition.xPos &&
+																					   r.FirstPosition.yPos < bottomV.VertPosition.yPos &&
+																					   r.FirstPosition.yPos > topV.VertPosition.yPos) ||
+																					   (r.SecondPosition.xPos == v.VertPosition.xPos &&
+																					   r.SecondPosition.yPos < bottomV.VertPosition.yPos &&
+																					   r.SecondPosition.yPos > topV.VertPosition.yPos));
+
 					if (interveningEdge != null) continue; //can't construct chord, there's something in the way
+
+					//look to see if the two verts are adjacent on an edge (this may come up on 1x1 holes)
+					RectEdge dupeEdge = allPerimeters.Find(r => r.FirstPosition.Equals(topV.VertPosition) && r.SecondPosition.Equals(bottomV.VertPosition) ||
+																r.SecondPosition.Equals(topV.VertPosition) && r.FirstPosition.Equals(bottomV.VertPosition));
+
+					if (dupeEdge != null) continue; //can't construct chord, there's something in the way
+
 
 					//this is a valid vertical chord
 					vertEdges.Add(prospectiveEdge);
@@ -629,13 +665,13 @@ namespace RectifyUtils
 				}
 
 				//horizontal cogrid chords
-				List<Vertex> horizCogrids = concaves.FindAll(q => q.Vert.xPos != v.Vert.xPos && q.Vert.yPos == v.Vert.yPos);
+				List<Vertex> horizCogrids = concaves.FindAll(q => q.VertPosition.xPos != v.VertPosition.xPos && q.VertPosition.yPos == v.VertPosition.yPos);
 				//it's only a valid chord if the shape doesn't have an edge at every step between the two verts.
 				Vertex leftV;
 				Vertex rightV;
 				foreach (Vertex cg in horizCogrids)
 				{
-					if (cg.Vert.xPos > v.Vert.xPos)
+					if (cg.VertPosition.xPos > v.VertPosition.xPos)
 					{
 						rightV = cg;
 						leftV = v;
@@ -646,17 +682,23 @@ namespace RectifyUtils
 						leftV = cg;
 					}
 					//early out if we've already looked at these verts
-					RectEdge prospectiveEdge = new RectEdge(leftV.Vert, rightV.Vert, EdgeType.None);
+					RectEdge prospectiveEdge = new RectEdge(leftV.VertPosition, rightV.VertPosition, EdgeType.None);
 					if (horizEdges.Contains(prospectiveEdge)) continue;
 
 					//look to see if there is an open edge space in any point between the two verts
-					RectEdge interveningEdge = allPerimeters.Find(r => (r.FirstPosition.yPos == v.Vert.yPos &&
-																					   r.FirstPosition.xPos < rightV.Vert.xPos &&
-																					   r.FirstPosition.xPos > leftV.Vert.xPos) ||
-																					   (r.SecondPosition.yPos == v.Vert.yPos &&
-																					   r.SecondPosition.xPos < rightV.Vert.xPos &&
-																					   r.SecondPosition.xPos > leftV.Vert.xPos));
+					RectEdge interveningEdge = allPerimeters.Find(r => (r.FirstPosition.yPos == v.VertPosition.yPos &&
+																					   r.FirstPosition.xPos < rightV.VertPosition.xPos &&
+																					   r.FirstPosition.xPos > leftV.VertPosition.xPos) ||
+																					   (r.SecondPosition.yPos == v.VertPosition.yPos &&
+																					   r.SecondPosition.xPos < rightV.VertPosition.xPos &&
+																					   r.SecondPosition.xPos > leftV.VertPosition.xPos));
 					if (interveningEdge != null) continue; //can't construct chord, there's something in the way
+
+					//look to see if the two verts are adjacent on an edge (this may come up on 1x1 holes)
+					RectEdge dupeEdge = allPerimeters.Find(r => r.FirstPosition.Equals(leftV.VertPosition) && r.SecondPosition.Equals(rightV.VertPosition) ||
+																r.SecondPosition.Equals(leftV.VertPosition) && r.FirstPosition.Equals(rightV.VertPosition));
+
+					if (dupeEdge != null) continue; //can't construct chord, there's something in the way
 
 					//this is a valid vertical chord
 					horizEdges.Add(prospectiveEdge);
@@ -814,7 +856,7 @@ namespace RectifyUtils
 							if (hole.Vertices.Find(v => v == workingVert) != null)
 							{
 								workingHole = hole;
-								prevEdge = hole.Perimeter.Find(e => e.Next.FirstPosition.Equals(workingVert.Vert));
+								prevEdge = hole.Perimeter.Find(e => e.Next.FirstPosition.Equals(workingVert.VertPosition));
 								workingEdge = prevEdge.Next;
 								break;
 							}
@@ -827,7 +869,7 @@ namespace RectifyUtils
 						{
 							//hole-shape cut
 
-							shapesToDecompose.Add(CombineShapesUsingEdge(workingHole, workingShape, new RectEdge(new Position(workingVert.Vert), closestEdge.FirstPosition, EdgeType.None)));
+							shapesToDecompose.Add(CombineShapesUsingEdge(workingHole, workingShape, new RectEdge(new Position(workingVert.VertPosition), closestEdge.FirstPosition, EdgeType.None)));
 							shapesToDecompose.Remove(workingShape);
 							continue;
 						}
@@ -860,7 +902,7 @@ namespace RectifyUtils
 				//working on a concave vert in the shape (not a hole)
 				else
 				{
-					prevEdge = workingShape.Perimeter.Find(e => e.Next.FirstPosition.Equals(workingVert.Vert));
+					prevEdge = workingShape.Perimeter.Find(e => e.Next.FirstPosition.Equals(workingVert.VertPosition));
 					workingEdge = prevEdge.Next;
 
 					var closestEdge = GetClosestEdge(workingShape, workingVert, workingEdge, prevEdge.HeadingDirection);
@@ -869,7 +911,7 @@ namespace RectifyUtils
 					if (workingShape.Perimeter.Contains(closestEdge))
 					{
 						//regular shape self-cut
-						shapesToDecompose.AddRange(CutShapeWithChords(workingShape, new RectEdge(new Position(workingVert.Vert), closestEdge.FirstPosition, EdgeType.None)));
+						shapesToDecompose.AddRange(CutShapeWithChords(workingShape, new RectEdge(new Position(workingVert.VertPosition), closestEdge.FirstPosition, EdgeType.None)));
 						shapesToDecompose.Remove(workingShape);
 						continue;
 					}
@@ -886,7 +928,7 @@ namespace RectifyUtils
 							}
 						}
 						//shape-hole cut
-						shapesToDecompose.Add(CombineShapesUsingEdge(workingShape, workingHole, new RectEdge(new Position(workingVert.Vert), closestEdge.FirstPosition, EdgeType.None)));
+						shapesToDecompose.Add(CombineShapesUsingEdge(workingShape, workingHole, new RectEdge(new Position(workingVert.VertPosition), closestEdge.FirstPosition, EdgeType.None)));
 						shapesToDecompose.Remove(workingShape);
 						continue;
 					}
@@ -903,13 +945,13 @@ namespace RectifyUtils
 		private static RectEdge GetClosestEdge(RectShape workingShape, Vertex workingVert, RectEdge workingEdge, Direction prevHeading)
 		{
 			//hole to cut. cut direction can be any direction except heading && opposite of prevNode's heading
-			List<RectEdge> horizCutTargets = workingShape.Perimeter.FindAll(e => e.FirstPosition.yPos == workingVert.Vert.yPos && e.FirstPosition.xPos != workingVert.Vert.xPos);
-			List<RectEdge> vertCutTargets = workingShape.Perimeter.FindAll(e => e.FirstPosition.xPos == workingVert.Vert.xPos && e.FirstPosition.yPos != workingVert.Vert.yPos);
+			List<RectEdge> horizCutTargets = workingShape.Perimeter.FindAll(e => e.FirstPosition.yPos == workingVert.VertPosition.yPos && e.FirstPosition.xPos != workingVert.VertPosition.xPos);
+			List<RectEdge> vertCutTargets = workingShape.Perimeter.FindAll(e => e.FirstPosition.xPos == workingVert.VertPosition.xPos && e.FirstPosition.yPos != workingVert.VertPosition.yPos);
 
 			foreach (RectShape hole in workingShape.Holes)
 			{
-				horizCutTargets.AddRange(hole.Perimeter.FindAll(e => e.FirstPosition.yPos == workingVert.Vert.yPos && e.FirstPosition.xPos != workingVert.Vert.xPos));
-				vertCutTargets.AddRange(hole.Perimeter.FindAll(e => e.FirstPosition.xPos == workingVert.Vert.xPos && e.FirstPosition.yPos != workingVert.Vert.yPos));
+				horizCutTargets.AddRange(hole.Perimeter.FindAll(e => e.FirstPosition.yPos == workingVert.VertPosition.yPos && e.FirstPosition.xPos != workingVert.VertPosition.xPos));
+				vertCutTargets.AddRange(hole.Perimeter.FindAll(e => e.FirstPosition.xPos == workingVert.VertPosition.xPos && e.FirstPosition.yPos != workingVert.VertPosition.yPos));
 			}
 
 			//cut opposite of the existing heading.
@@ -917,19 +959,19 @@ namespace RectifyUtils
 			{
 				case Direction.East:
 					//keep only those west of the workingVertex
-					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos < workingVert.Vert.xPos);
+					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos < workingVert.VertPosition.xPos);
 					break;
 				case Direction.South:
 					//keep only those north of the working vertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.Vert.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.VertPosition.yPos);
 					break;
 				case Direction.West:
 					//keep only those east of the workingVertex
-					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos > workingVert.Vert.xPos);
+					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos > workingVert.VertPosition.xPos);
 					break;
 				case Direction.North:
 					//keep only those south of the workingVertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.Vert.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.VertPosition.yPos);
 					break;
 			}
 
@@ -939,19 +981,19 @@ namespace RectifyUtils
 			{
 				case Direction.West:
 					//keep only those west of the workingVertex
-					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos < workingVert.Vert.xPos);
+					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos < workingVert.VertPosition.xPos);
 					break;
 				case Direction.North:
 					//keep only those north of the working vertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.Vert.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.VertPosition.yPos);
 					break;
 				case Direction.East:
 					//keep only those east of the workingVertex
-					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos > workingVert.Vert.xPos);
+					horizCutTargets = horizCutTargets.FindAll(e => e.FirstPosition.xPos > workingVert.VertPosition.xPos);
 					break;
 				case Direction.South:
 					//keep only those south of the workingVertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.Vert.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.VertPosition.yPos);
 					break;
 			}
 
@@ -961,7 +1003,7 @@ namespace RectifyUtils
 			closeEdges.AddRange(horizCutTargets);
 			closeEdges.AddRange(vertCutTargets);
 
-			return closeEdges.OrderBy(e => (e.FirstPosition - workingVert.Vert).Magnitude).First();
+			return closeEdges.OrderBy(e => (e.FirstPosition - workingVert.VertPosition).Magnitude).First();
 		}
 
 		/// <summary>
@@ -1101,19 +1143,30 @@ namespace RectifyUtils
 			var firstIncision = firstHole.Perimeter.Find(edge => edge.SecondPosition.Equals(spanningEdge.FirstPosition));
 			var secondIncision = secondHole.Perimeter.Find(edge => edge.SecondPosition.Equals(spanningEdge.SecondPosition));
 
+			if (firstIncision == null && secondIncision == null)
+			{
+				//try swapping
+				firstIncision = secondHole.Perimeter.Find(edge => edge.SecondPosition.Equals(spanningEdge.FirstPosition));
+				secondIncision = firstHole.Perimeter.Find(edge => edge.SecondPosition.Equals(spanningEdge.SecondPosition));
+			}
+			if (firstIncision == null || secondIncision == null)
+			{
+				throw new Exception("Nope, we have bigger problems");
+			}
+
 			//the list of finalVerts is easy -- it's all the verts of firstHole + all the verts of secondHole, + the intersection point
 			//if it's not a vert of secondHole. And if it's not a ver of secondhole, it's always convex due to the nature of our intersection (I *think*)
 			List<Vertex> finalVerts = new List<Vertex>();
 			finalVerts.AddRange(firstHole.Vertices);
 			finalVerts.AddRange(secondHole.Vertices);
-			if (secondHole.Vertices.Find(v => v.Vert.Equals(spanningEdge.SecondPosition)) == null)
+			if (secondHole.Vertices.Find(v => v.VertPosition.Equals(spanningEdge.SecondPosition)) == null)
 			{
 				//add the new vert we're about to create.
 				finalVerts.Add(new Vertex(new Position(spanningEdge.SecondPosition), false));
 			}
 
 			//the vertex @ spanningEdge.FirstPosition is no longer concave after being joined
-			finalVerts.Find(v => v.Vert.Equals(spanningEdge.FirstPosition))?.SetConvex();
+			finalVerts.Find(v => v.VertPosition.Equals(spanningEdge.FirstPosition))?.SetConvex();
 
 
 			if (firstIncision != null && secondIncision != null)
@@ -1245,7 +1298,8 @@ namespace RectifyUtils
 				}
 				else
 				{
-					newHoles = new List<RectShape>();
+					firstHole.RemoveHole(secondHole);
+					newHoles = firstHole.Holes;
 				}
 
 
@@ -1288,7 +1342,7 @@ namespace RectifyUtils
 					{
 						//shape-shape cut
 						//bool is "IsConcave"
-						HashSet<Position> rectVertices = new HashSet<Position>(rshape.Vertices.Select(v => new Position(v.Vert)));
+						HashSet<Position> rectVertices = new HashSet<Position>(rshape.Vertices.Select(v => new Position(v.VertPosition)));
 						//walk the shape's perimeter, once we find the first point, keep track until we find the second point,
 						//then create straight edges between them (plan is to have no holes at this point to counfound this)
 						//finally, set the .Next to point to the new edges, and create new RectShapes from the new cycles.
@@ -1319,7 +1373,7 @@ namespace RectifyUtils
 							shapesToAdd.Add(eastCut);
 							shapesToAdd.Add(westCut);
 							shapeToRemove = rshape;
-
+							break;
 						}
 						else if (redge.FirstPosition.yPos == redge.SecondPosition.yPos)
 						{
@@ -1345,6 +1399,7 @@ namespace RectifyUtils
 							shapesToAdd.Add(southCut);
 							shapesToAdd.Add(northCut);
 							shapeToRemove = rshape;
+							break;
 						}
 						else
 						{
@@ -1363,11 +1418,11 @@ namespace RectifyUtils
 
 						foreach (RectShape hole in rshape.Holes)
 						{
-							if (hole.Vertices.Find(v => v.Vert.Equals(redge.FirstPosition)) != null)
+							if (hole.Vertices.Find(v => v.VertPosition.Equals(redge.FirstPosition)) != null)
 							{
 								firstHole = hole;
 							}
-							if (hole.Vertices.Find(v => v.Vert.Equals(redge.SecondPosition)) != null)
+							if (hole.Vertices.Find(v => v.VertPosition.Equals(redge.SecondPosition)) != null)
 							{
 								secondHole = hole;
 							}
@@ -1388,16 +1443,65 @@ namespace RectifyUtils
 						if ((firstHole == null && secondHole != null) ||
 						   (firstHole != null && secondHole == null))
 						{
-							throw new Exception("Tried to join a single hole");
+							//throw new Exception("Tried to join a single hole");
+							//TODO: Just skip this chord I guess?
+
+							//I think this is the inverse half of the below code w/ the same crude hack
+							Console.WriteLine("Chord cut appears to have been mooted. Skipping.");
+
+							//crude hack
+							shapesToAdd.Add(rshape);
+							shapeToRemove = rshape;
+							//end crude hack
+							break;
+
 						}
 
-						RectShape combinedHole = CombineShapesUsingEdge(firstHole, secondHole, redge);
-						rshape.RemoveHole(firstHole);
-						rshape.RemoveHole(secondHole);
-						rshape.AddHole(combinedHole);
+						//special case if these are the same hole.
+						if (firstHole == secondHole)
+						{
+							List<RectShape> holeAndShape = CutShapeWithChords(firstHole, redge);
+							//one of these is a hole, and the other one is a potentially concave shape.
+							//the one that is NOT a hole is the one who has the vertices (from the cut) and
+							//those vertices are NOT concave?
 
-						shapesToAdd.Add(rshape);
-						shapeToRemove = rshape;
+							rshape.RemoveHole(firstHole);
+
+							var potentialHole = holeAndShape[0];
+							var otherPotentialHole = holeAndShape[1];
+
+							//if this is a hole, there will be more concave verts than convex ones. (4 more)
+							int concaveVertCount = potentialHole.Vertices.FindAll(v => v.IsConcave).Count;
+							int convexVertCount = potentialHole.Vertices.Count - concaveVertCount;
+							if (concaveVertCount < convexVertCount)
+							{
+								//potentialHole is not a hole, but otherPotentialHole is
+								rshape.AddHole(otherPotentialHole);
+
+								//not actually a hole
+								shapesToAdd.Add(potentialHole);
+							}
+							else
+							{
+								rshape.AddHole(potentialHole);
+
+								//not actually a hole
+
+								shapesToAdd.Add(otherPotentialHole);
+							}
+							break;
+						}
+						else
+						{
+							RectShape combinedHole = CombineShapesUsingEdge(firstHole, secondHole, redge);
+							rshape.RemoveHole(firstHole);
+							rshape.RemoveHole(secondHole);
+							rshape.AddHole(combinedHole);
+
+							shapesToAdd.Add(rshape);
+							shapeToRemove = rshape;
+							break;
+						}
 					}
 					else
 					{
@@ -1408,7 +1512,7 @@ namespace RectifyUtils
 							//firstIncision is a hole
 							foreach (RectShape hole in rshape.Holes)
 							{
-								if (hole.Vertices.Find(v => v.Vert.Equals(redge.FirstPosition)) != null)
+								if (hole.Vertices.Find(v => v.VertPosition.Equals(redge.FirstPosition)) != null)
 								{
 									joinedHole = hole;
 									break;
@@ -1420,7 +1524,7 @@ namespace RectifyUtils
 							//firstIncision is a hole
 							foreach (RectShape hole in rshape.Holes)
 							{
-								if (hole.Vertices.Find(v => v.Vert.Equals(redge.SecondPosition)) != null)
+								if (hole.Vertices.Find(v => v.VertPosition.Equals(redge.SecondPosition)) != null)
 								{
 									joinedHole = hole;
 									break;
@@ -1429,12 +1533,27 @@ namespace RectifyUtils
 						}
 						if (joinedHole == null)
 						{
-							throw new Exception("Tried to join to absent hole");
+							//throw new Exception("Tried to join to absent hole");
+							//TODO: Just skip this chord I guess?
+
+							//I think the "appropriate" way to handle it would be to build out the
+							//edge of the incision we did find until we run into the perimeter of another shape.
+							//to create a 1-d edge but not actually doing any cutting.
+							//TODO: DO THAT!
+							Console.WriteLine("Chord cut appears to have been mooted. Skipping.");
+
+							//crude hack
+							shapesToAdd.Add(rshape);
+							shapeToRemove = rshape;
+							//end crude hack
+
+							break;
 						}
 
 						RectShape mergedShape = CombineShapesUsingEdge(rshape, joinedHole, redge);
 						shapesToAdd.Add(mergedShape);
 						shapeToRemove = rshape;
+						break;
 					}
 				}
 
@@ -1467,16 +1586,42 @@ namespace RectifyUtils
 
 			//check to see if the chord contains both positions as part of the shape's perimeter.
 			//we want to use the SecondPosition, since that's where the next edge starts from.
-			var firstIncision = rectShape.Perimeter.Find(edge => edge.SecondPosition.Equals(chord.FirstPosition));
-			var secondIncision = rectShape.Perimeter.Find(edge => edge.SecondPosition.Equals(chord.SecondPosition));
+
+			//because 2-d edges exist (two edges on the same 2 points, with the firstPosition && secondPosition swapped)
+			//we need to additionally find the edge whose heading makes a convex angle with ours, or a straight line.
+
+			RectEdge firstIncision = null;
+			RectEdge secondIncision = null;
+
+			var firstIncisionList = rectShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(chord.FirstPosition));
+			var secondIncisionList = rectShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(chord.SecondPosition));
+
+			if (firstIncisionList.Count == 1)
+			{
+				firstIncision = firstIncisionList[0];
+			}
+			else
+			{
+				firstIncision = firstIncisionList.Find(edge => IsConvexOrColinear(chord.HeadingDirection, edge.HeadingDirection));
+			}
+
+			if (secondIncisionList.Count == 1)
+			{
+				secondIncision = secondIncisionList[0];
+			}
+			else
+			{
+				secondIncision = secondIncisionList.Find(edge => IsConvexOrColinear(chord.HeadingDirection, edge.HeadingDirection));
+			}
+
 
 			if (firstIncision != null && secondIncision != null)
 			{
 				//bool is "IsConcave"
-				var rectVertices = new HashSet<Position>(rectShape.Vertices.Select(v => new Position(v.Vert))); //can have dupes here. Remove them.
-																												//walk the shape's perimeter, once we find the first point, keep track until we find the second point,
-																												//then create straight edges between them (plan is to have no holes at this point to counfound this)
-																												//finally, set the .Next to point to the new edges, and create new RectShapes from the new cycles.
+				var rectVertices = new HashSet<Position>(rectShape.Vertices.Select(v => new Position(v.VertPosition))); //can have dupes here. Remove them.
+																														//walk the shape's perimeter, once we find the first point, keep track until we find the second point,
+																														//then create straight edges between them (plan is to have no holes at this point to counfound this)
+																														//finally, set the .Next to point to the new edges, and create new RectShapes from the new cycles.
 
 				//our cuts will always be left-to-right or down-to-top (mathmatically, in the quadrant we're working out of, this is cutting "down")
 				//if firstIncision doesn't have the lower of the x/y values, swap first and second incision.
@@ -1561,7 +1706,7 @@ namespace RectifyUtils
 			{
 				case Direction.West:
 					//holes must all be < firstIncision.secondPosition to be passed on to child shapes.
-					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.Vert.xPos >= firstIncision.SecondPosition.xPos) == null));
+					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.VertPosition.xPos >= firstIncision.SecondPosition.xPos) != null));
 
 					foreach (RectShape rs in carriedHoles)
 					{
@@ -1572,7 +1717,9 @@ namespace RectifyUtils
 
 				case Direction.East:
 					//holes must all be > firstIncision.secondPosition to be passed on to child shapes.
-					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.Vert.xPos >= firstIncision.SecondPosition.xPos) == null));
+
+					//find all holes with a vertex who have at least 1 x coordinate that is >= the x coordinate of the second position
+					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.VertPosition.xPos >= firstIncision.SecondPosition.xPos) != null));
 
 					foreach (RectShape rs in carriedHoles)
 					{
@@ -1582,7 +1729,7 @@ namespace RectifyUtils
 					break;
 				case Direction.North:
 					//holes must all be < firstIncision.secondPosition to be passed on to child shapes.
-					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.Vert.yPos >= firstIncision.SecondPosition.yPos) == null));
+					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.VertPosition.yPos <= firstIncision.SecondPosition.yPos) != null));
 
 					foreach (RectShape rs in carriedHoles)
 					{
@@ -1592,7 +1739,7 @@ namespace RectifyUtils
 					break;
 				case Direction.South:
 					//holes must all be > firstIncision.secondPosition to be passed on to child shapes.
-					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.Vert.yPos <= firstIncision.SecondPosition.yPos) == null));
+					carriedHoles = (holes.FindAll(s => s.Vertices.Find(v => v.VertPosition.yPos >= firstIncision.SecondPosition.yPos) != null));
 
 					foreach (RectShape rs in carriedHoles)
 					{
@@ -1610,8 +1757,17 @@ namespace RectifyUtils
 			if (vertPositions.Contains(workingEdge.Next.SecondPosition))
 			{
 				//this vertex is part of the new shape
-				bool isConcave = VertexIsConcave(workingEdge.Next.HeadingDirection, workingEdge.Next.Next.HeadingDirection);
-				vertices.Add(new Vertex(workingEdge.Next.SecondPosition, isConcave));
+				if (workingEdge.Next.HeadingDirection == workingEdge.Next.Next.HeadingDirection)
+				{
+					//this means workingEdge.Next is between two points going the same way. Ergo, not a true vertex for this shape post-cut.
+					//System.Console.WriteLine("hit it");
+				}
+				else
+				{
+					//it is possible for the concave-ness of the vertice to have changed after the cut, so re-calc the angle here
+					bool isConcave = VertexIsConcave(workingEdge.Next.HeadingDirection, workingEdge.Next.Next.HeadingDirection);
+					vertices.Add(new Vertex(workingEdge.Next.SecondPosition, isConcave));
+				}
 			}
 
 			while (workingEdge.Next != secondIncision) //get the east side
@@ -1652,7 +1808,7 @@ namespace RectifyUtils
 			//the cycle is now complete for the east shape. Add last two vertices (the incisions)
 			//or update them to be convex if they were previously concave (happens in Stage 1 of the decomp)
 
-			temp = vertices.Find(v => v.Vert.Equals(firstIncision.SecondPosition));
+			temp = vertices.Find(v => v.VertPosition.Equals(firstIncision.SecondPosition));
 			if (temp == null)
 			{
 				//vertex doesn't exist, so add a new one.
@@ -1700,7 +1856,7 @@ namespace RectifyUtils
 
 
 			}
-			temp = vertices.Find(v => v.Vert.Equals(secondIncision.SecondPosition));
+			temp = vertices.Find(v => v.VertPosition.Equals(secondIncision.SecondPosition));
 			if (temp == null)
 			{
 				//vertex doesn't exist, so add a new one.
@@ -1749,6 +1905,39 @@ namespace RectifyUtils
 
 			return new RectShape() { Perimeter = edges, Vertices = vertices, Holes = carriedHoles };
 		}
+		/// <summary>
+		/// Tests whether the vertex formed between the two headings is convex or the same direction.
+		/// </summary>
+		/// <param name="firstVector"></param>
+		/// <param name="secondVector"></param>
+		/// <returns></returns>
+		private static bool IsConvexOrColinear(Direction firstVector, Direction secondVector)
+		{
+			if (firstVector == secondVector)
+			{
+				return true;
+			}
+			switch (firstVector)
+			{
+				case Direction.East:
+					if (secondVector == Direction.South) return true;
+					break;
+				case Direction.South:
+					if (secondVector == Direction.West) return true;
+					break;
+				case Direction.West:
+					if (secondVector == Direction.North) return true;
+					break;
+				case Direction.North:
+					if (secondVector == Direction.East) return true;
+					break;
+				default:
+					break;
+			}
+
+			return false;
+		}
+
 
 		/// <summary>
 		/// Tests whether the vertex formed between the two headings is concave or not.
@@ -1962,23 +2151,78 @@ namespace RectifyUtils
 		/// <param name="sinkNode"></param>
 		private static void CalculateMaximumFlow(RectFlowNode sourceNode, RectFlowNode sinkNode)
 		{
-			List<RectFlowNode> path;
 			while (sourceNode.DestinationNodes.Count > 0)
 			{
-				path = new List<RectFlowNode>();
+				RectFlowNode firstDestination = sourceNode.DestinationNodes.First();
 
-				//Depth-First search to the goal
-				List<RectFlowNode> nodePath = sourceNode.FindLinkedNode(sinkNode);
-
-				if (nodePath == null) break; //no more paths
-
-				//reverse each link in the path in nodePath
-				for (int i = 1; i < nodePath.Count; i++)
+				List<BFSFlowNode> unvisited = new List<BFSFlowNode>()
 				{
-					nodePath[i - 1].ReverseLink(nodePath[i]);
+					//initial node
+					new BFSFlowNode(firstDestination, new List<RectFlowNode>(){sourceNode})
+				};
+				HashSet<RectFlowNode> visited = new HashSet<RectFlowNode>();
+
+				List<RectFlowNode> nodePath = null;
+
+				//Breadth-First search to the goal
+				while (unvisited.Count > 0)
+				{
+					//first, check if this node is the sink node.
+					RectFlowNode workingNode = unvisited[0].Node;
+					List<RectFlowNode> workingPath = unvisited[0].Path;
+					unvisited.RemoveAt(0);
+
+					if (workingNode == sinkNode)
+					{
+						nodePath = workingPath;
+						nodePath.Add(workingNode);
+						break;
+					}
+
+					//second, check if this node is in the visited list
+					if (visited.Contains(workingNode))
+					{
+						//we can continue
+						continue;
+					}
+
+					//didn't find the path, so add the children to the unvisited lists, and add 
+					//the path we took to get here.
+					visited.Add(workingNode);
+					foreach (var childNode in workingNode.DestinationNodes)
+					{
+						//but only if they're not already in the visited list;
+						if (visited.Contains(childNode) == false)
+						{
+							var tempest = new List<RectFlowNode>();
+							tempest.AddRange(workingPath);
+							tempest.Add(workingNode);
+
+							var temp = new BFSFlowNode(childNode, tempest);
+							unvisited.Add(temp);
+						}
+					}
 				}
 
-				//try to find another path. repeat
+				if (nodePath == null)
+				{
+					//there was no path from the source to the destination. This is possible, it means the
+					//edge is isolated and there are no intersections.
+
+					//therefore, we can safely remove it from here.
+					sourceNode.DestinationNodes.Remove(firstDestination);
+				}
+
+				else
+				{
+					//reverse each link in the path in nodePath
+					for (int i = 1; i < nodePath.Count; i++)
+					{
+						nodePath[i - 1].ReverseLink(nodePath[i]);
+					}
+				}
+
+
 			}
 
 			//done finding paths.
@@ -2106,6 +2350,28 @@ namespace RectifyUtils
 
 				prevEdge = currentEdge;
 				prevHeading = currentHeading;
+			}
+			////after doing all of this, have to do it for the wraparound piece of the perimeter
+			currentEdge = currentEdge.Next;
+			currentHeading = currentEdge.HeadingDirection;
+
+			int concavity2 = ((int)prevHeading - (int)currentHeading + 3) % 4;
+
+			switch (concavity2)
+			{
+				case 0:// % in C# is the REMAINDER operator, not the Modulo operator, so negative values are possible if we didn't +3
+					   //concave vertex
+				case 1:
+					shapeVerts.Add(new Vertex(currentEdge.FirstPosition, true));
+					break;
+
+				case 2:
+					//convex vertex
+					shapeVerts.Add(new Vertex(currentEdge.FirstPosition, false));
+					break;
+				case 3:
+					//not a vert
+					break;
 			}
 
 			shape.Vertices = new List<Vertex>(shapeVerts);

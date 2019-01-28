@@ -446,11 +446,267 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
+		public void OneDRectangleVertexTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.OneDRectangleTest());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(1, subpolygons.Count, "Didn't get 1 subpolygon as expected");
+			Assert.AreEqual(4, subpolygons[0].Vertices.Count, "Had wrong number of vertices for main square");
+
+			//perimeters are traversable.
+			foreach (var sp in subpolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(Rectify.SecondLevelDecomposition(sp));
+			}
+
+			//perimeters are traversable.
+			foreach (var sp in subsubPolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+				Assert.IsTrue(sp.Vertices.Count == 4, "Not a rectangle, had more than 4 verts");
+			}
+
+			Assert.AreEqual(4, subsubPolygons.Count, "Did not decomp into the minimum 4 polygons");
+		}
+
+		[TestMethod]
+		public void HoleSelfCutTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.SquareWithSelfHoleCut());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(2, subpolygons.Count, "Didn't get 2 subpolygon as expected");
+			Assert.AreEqual(4, subpolygons[0].Vertices.Count, "Had wrong number of vertices for main square");
+			List<RectShape> subsubPolygons = ValidateRects(subpolygons);
+
+			Assert.AreEqual(5, subsubPolygons.Count, "Did not decomp into the minimum 5 polygons");
+		}
+
+		[TestMethod]
+		public void HoleSelfCutWithCogridCompanionTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.SelfHoleCutWithCogridSide());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(1, subpolygons.Count, "Didn't get 2 subpolygon as expected");
+			List<RectShape> subsubPolygons = ValidateRects(subpolygons);
+
+			Assert.AreEqual(6, subsubPolygons.Count, "Did not decomp into the minimum 6 polygons");
+		}
+
+		[TestMethod]
+		public void DisjointHatTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.DisjointHat());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(3, subpolygons.Count, "Didn't get 3 subpolygon as expected");
+			Assert.AreEqual(4, subpolygons[0].Vertices.Count, "Had wrong number of vertices for main square");
+			List<RectShape> subsubPolygons = ValidateRects(subpolygons);
+
+			Assert.AreEqual(8, subsubPolygons.Count, "Did not decomp into the minimum 8 polygons");
+		}
+
+		[TestMethod]
+		public void MetoriteSiteTest()
+		{
+			var result = Rectify.GetRectNodes(TestData.MeteorStrike());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
+
+			Assert.AreEqual(1, subpolygons.Count, "Didn't get 1 subpolygon as expected");
+			List<RectShape> subsubPolygons = ValidateRects(subpolygons);
+
+			Assert.AreEqual(8, subsubPolygons.Count, "Did not decomp into the minimum 8 polygons");
+		}
+
+		private static List<RectShape> ValidateRects(List<RectShape> subpolygons)
+		{
+			//perimeters are traversable.
+			foreach (var sp in subpolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(Rectify.SecondLevelDecomposition(sp));
+			}
+
+			//perimeters are traversable.
+			foreach (var sp in subsubPolygons)
+			{
+				bool cycled = false;
+				RectEdge start = sp.Perimeter[0];
+				RectEdge next = start.Next;
+				for (int i = 0; i < 999; i++)
+				{
+					if (next == start)
+					{
+						cycled = true;
+						break;
+					}
+					next = next.Next;
+				}
+				if (cycled == false)
+				{
+					Assert.Fail("Perimeter did not cycle");
+				}
+
+				foreach (RectEdge re in sp.Perimeter)
+				{
+					Position p = re.SecondPosition - re.Next.FirstPosition;
+					if (p.Magnitude != 0)
+					{
+						Assert.Fail("Two edges were not end-to-end");
+					}
+					Position q = re.FirstPosition - re.Next.FirstPosition;
+					if (q.Magnitude != 1)
+					{
+						Assert.Fail("Two edges were further than 1 apart");
+					}
+				}
+
+				Assert.IsTrue(sp.Vertices.Count == 4, "Not a rectangle, had more than 4 verts");
+			}
+
+			return subsubPolygons;
+		}
+
+		[TestMethod]
 		public void MakeRectanglesTest()
 		{
 			var result = Rectify.MakeRectangles(TestData.BinaryConcaveShapeNoHoles());
 			Assert.AreEqual(17, result.Count, "did not make 14 total rectangles as expected");
 		}
+
+		[TestMethod]
+		public void MakeRimworldSaveTest()
+		{
+			//break this down into pieces.
+			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 0), new Position(50, 50)); //completes w/o error
+			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(50, 0), new Position(100, 50)); //completes w/o error
+			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 50)); //completes w/o error
+			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 50), new Position(150, 100)); //completes w/o error
+			var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(200, 50), new Position(275, 150)); //ERRORS!
+
+			//var result = Rectify.MakeRectangles(TestData.DesertTitans());
+			Assert.AreEqual(100, result.Count, "holy cow we made it through");
+		}
+
+
 
 		[TestMethod]
 		public void BinaryConcaveShapeNoHolesSecondLevelDecompTest()
