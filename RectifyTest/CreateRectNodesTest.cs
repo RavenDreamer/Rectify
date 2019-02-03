@@ -564,7 +564,7 @@ namespace RectifyTest
 
 			var subpolygons = Rectify.FirstLevelDecomposition(polygons[0]);
 
-			Assert.AreEqual(1, subpolygons.Count, "Didn't get 2 subpolygon as expected");
+			Assert.AreEqual(2, subpolygons.Count, "Didn't get 2 subpolygon as expected");
 			List<RectShape> subsubPolygons = ValidateRects(subpolygons);
 
 			Assert.AreEqual(6, subsubPolygons.Count, "Did not decomp into the minimum 6 polygons");
@@ -689,20 +689,60 @@ namespace RectifyTest
 		public void MakeRectanglesTest()
 		{
 			var result = Rectify.MakeRectangles(TestData.BinaryConcaveShapeNoHoles());
-			Assert.AreEqual(17, result.Count, "did not make 14 total rectangles as expected");
+			Assert.AreEqual(17, result.Count, "did not make 17 total rectangles as expected");
 		}
+
+		[TestMethod]
+		public void EastEdgeTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.EastEdge());
+			Assert.AreEqual(26, result.Count, "did not make 26 total rectangles as expected");
+		}
+
+		[TestMethod]
+		public void MeteorWallTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.MeteorWall());
+			Assert.AreEqual(21, result.Count, "did not make 21 total rectangles as expected");
+		}
+
+		[TestMethod]
+		public void BaseEdgeTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.BaseEdge());
+			Assert.AreEqual(36, result.Count, "did not make 36 total rectangles as expected");
+		}
+
+		[TestMethod]
+		public void VertexConcavityTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.VertexConcavity());
+			Assert.AreEqual(10, result.Count, "did not make 10 total rectangles as expected");
+		}
+
+		//[TestMethod]
+		//public void VertexConcavity2Test()
+		//{
+		//	var result = Rectify.MakeRectangles(TestData.VertexConcavity2());
+		//	Assert.AreEqual(10, result.Count, "did not make 10 total rectangles as expected");
+		//}
+
 
 		[TestMethod]
 		public void MakeRimworldSaveTest()
 		{
 			//break this down into pieces.
-			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 0), new Position(50, 50)); //completes w/o error
-			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(50, 0), new Position(100, 50)); //completes w/o error
-			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 50)); //completes w/o error
-			//var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 50), new Position(150, 100)); //completes w/o error
-			var result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(200, 50), new Position(275, 150)); //ERRORS!
+			List<RectifyRectangle> result = null;
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 0), new Position(50, 50)); //completes w/o error
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(50, 0), new Position(100, 50)); //completes w/o error
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 50)); //completes w/o error
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 50), new Position(150, 100)); //completes w/o error
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(200, 50), new Position(275, 150)); //completes w/o error
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 150), new Position(50, 274)); //completes w/o error //for whatever reason, only 274 height. Missed a row originally, I guess?
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(150, 150), new Position(250, 200)); //completes w/o error
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 25), new Position(100, 200)); //completes w/o error
 
-			//var result = Rectify.MakeRectangles(TestData.DesertTitans());
+			//result = Rectify.MakeRectangles(TestData.DesertTitans());
 			Assert.AreEqual(100, result.Count, "holy cow we made it through");
 		}
 
