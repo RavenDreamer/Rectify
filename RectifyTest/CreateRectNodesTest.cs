@@ -723,8 +723,11 @@ namespace RectifyTest
 		[TestMethod]
 		public void RoomHolesTest()
 		{
-			var result = Rectify.MakeRectangles(TestData.RoomHoles());
-			Assert.AreEqual(10, result.Count, "did not make 10 total rectangles as expected");
+
+			var result = Rectify.GetRectNodes(TestData.RoomHoles());
+			var output = Rectify.TraverseShapeOutlines(result);
+
+			Assert.AreEqual(2, output[0].Holes.Count, "Did not get 2 holes as expected");
 		}
 
 

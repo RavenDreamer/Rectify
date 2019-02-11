@@ -46,12 +46,17 @@ namespace RectifyUtils
 			public EdgeType East { get; set; }
 		}
 
+
 		/// <summary>
 		/// Identifies this Node as a member of a particular region (shape).
 		/// </summary>
 		public int ParentRegion { get; set; } = -1;
 
 		public EdgeBox Edges { get; private set; } = new EdgeBox();
+
+		//used for finding holes properly
+		public int NorthEdgeID { get; set; } = -1;
+		public int SouthEdgeID { get; set; } = -1;
 
 		public override bool Equals(object obj)
 		{

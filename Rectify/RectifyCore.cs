@@ -200,6 +200,7 @@ namespace RectifyUtils
 			int maxWidth = data.GetLength(0);
 			int maxHeight = data.GetLength(1);
 			int parentRegion = 0;
+			int holeRegion = 0;
 
 			for (int h = 0; h < maxHeight; h++)
 			{
@@ -238,7 +239,7 @@ namespace RectifyUtils
 							RectEdge firstHoleEdge = new RectEdge(firstHoleVertex + East, firstHoleVertex, peekHole.Edges.South);
 
 
-							RectShape foundHole = TranscribeShape(firstHoleVertex + East, firstHoleEdge, peekHole, -1, data, maxWidth, maxHeight, true);
+							RectShape foundHole = TranscribeShape(firstHoleVertex + East, firstHoleEdge, peekHole, -1, data, maxWidth, maxHeight, true, holeRegion);
 
 							//starting with peekHole, look north for a rectNode with parentRegion != -1. if you don't find it, look for a north edge with a 
 							//burnedHoleEdge. If we find it, travel north until we find a burnedHoleEdge on the south border, then repeat.
@@ -248,6 +249,7 @@ namespace RectifyUtils
 
 							int i_scanUpwards = h - 1;
 							bool foundHoleEdge = false;
+							int foundInt = -1;
 							while (i_scanUpwards >= 0)
 							{
 								RectNode holeParent = data[w, i_scanUpwards];
@@ -260,6 +262,7 @@ namespace RectifyUtils
 										if (holeParent.Edges.North == EdgeType.BurnedHoleEdge)
 										{
 											foundHoleEdge = true;
+											foundInt = holeParent.NorthEdgeID;
 										}
 										i_scanUpwards--;
 										continue;
@@ -272,15 +275,17 @@ namespace RectifyUtils
 								}
 								else
 								{
-									//look south for the other side of the hole
-									if (holeParent.Edges.South == EdgeType.BurnedHoleEdge)
+									//look south for the other side of the hole. Only stop when we find the *matching* hole
+									if (holeParent.Edges.South == EdgeType.BurnedHoleEdge && holeParent.SouthEdgeID == foundInt)
 									{
 										foundHoleEdge = false;
+										foundInt = -1;
 										continue;
 									}
 									i_scanUpwards--;
 								}
 							}
+							holeRegion++;
 						}
 					}
 				}
@@ -300,10 +305,8 @@ namespace RectifyUtils
 		/// <param name="maxWidth"></param>
 		/// <param name="maxHeight"></param>
 		/// <returns></returns>
-		private static RectShape TranscribeShape(Position firstVertex, RectEdge firstEdge, RectNode peekNode, int parentRegion, RectNode[,] data, int maxWidth, int maxHeight, bool isHole = false)
+		private static RectShape TranscribeShape(Position firstVertex, RectEdge firstEdge, RectNode peekNode, int parentRegion, RectNode[,] data, int maxWidth, int maxHeight, bool isHole = false, int holeRegion = -1)
 		{
-
-
 			RectEdge workingEdge = firstEdge;
 
 			HashSet<RectEdge> perimeterList = new HashSet<RectEdge>
@@ -314,11 +317,11 @@ namespace RectifyUtils
 			if (isHole)
 			{
 				//starting from the other side if we're in a hole.
-				ClearEdge(peekNode, Direction.South, parentRegion);
+				ClearEdge(peekNode, Direction.South, parentRegion, holeRegion);
 			}
 			else
 			{
-				ClearEdge(peekNode, Direction.North, parentRegion); //clear out the edge as we traverse it
+				ClearEdge(peekNode, Direction.North, parentRegion, holeRegion); //clear out the edge as we traverse it
 			}
 
 			//keep looking for edges until we reach our starting point
@@ -332,7 +335,7 @@ namespace RectifyUtils
 				foreach (Direction d in nextCellVectors)
 				{
 					//check if there is an appropriate edge in the next cell for the given direction
-					RectEdge edge = TraverseEdge(workingEdge, d, data, parentRegion, out peekNode);
+					RectEdge edge = TraverseEdge(workingEdge, d, data, parentRegion, holeRegion, out peekNode);
 
 					if (edge == null) continue; //no edge was traversed. Try the next direction
 
@@ -2401,7 +2404,7 @@ namespace RectifyUtils
 		/// <param name="data"></param>
 		/// <param name="peekNode"></param>
 		/// <returns></returns>
-		private static RectEdge TraverseEdge(RectEdge workingEdge, Direction d, RectNode[,] data, int parentRegion, out RectNode peekNode)
+		private static RectEdge TraverseEdge(RectEdge workingEdge, Direction d, RectNode[,] data, int parentRegion, int holeID, out RectNode peekNode)
 		{
 			Position headingOffset = null;
 			Position directionOffset = null;
@@ -2546,7 +2549,7 @@ namespace RectifyUtils
 			RectEdge traverseEdge = new RectEdge(workingEdge.SecondPosition, workingEdge.SecondPosition + vertexOffset, retEdge);
 
 			workingEdge.Next = traverseEdge;
-			ClearEdge(peekNode, edgeDirection, parentRegion); //since we traversed it, clear it.
+			ClearEdge(peekNode, edgeDirection, parentRegion, holeID); //since we traversed it, clear it.
 
 			return traverseEdge;
 		}
@@ -2556,13 +2559,25 @@ namespace RectifyUtils
 		/// </summary>
 		/// <param name="edgeNode"></param>
 		/// <param name="direction"></param>
-		private static void ClearEdge(RectNode edgeNode, Direction direction, int parent)
+		private static void ClearEdge(RectNode edgeNode, Direction direction, int parent, int holeID)
 		{
 			EdgeType replacementEdge;
 			if (parent == -1)
 			{
 				//we're demarcating a hole
 				replacementEdge = EdgeType.BurnedHoleEdge;
+				if (direction == Direction.South)
+				{
+					edgeNode.SouthEdgeID = holeID;
+				}
+				else if (direction == Direction.North)
+				{
+					edgeNode.NorthEdgeID = holeID;
+				}
+				else
+				{
+					//we don't need to do anything for east / west
+				}
 			}
 			else
 			{
