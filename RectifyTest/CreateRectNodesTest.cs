@@ -720,12 +720,12 @@ namespace RectifyTest
 			Assert.AreEqual(10, result.Count, "did not make 10 total rectangles as expected");
 		}
 
-		//[TestMethod]
-		//public void VertexConcavity2Test()
-		//{
-		//	var result = Rectify.MakeRectangles(TestData.VertexConcavity2());
-		//	Assert.AreEqual(10, result.Count, "did not make 10 total rectangles as expected");
-		//}
+		[TestMethod]
+		public void RoomHolesTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.RoomHoles());
+			Assert.AreEqual(10, result.Count, "did not make 10 total rectangles as expected");
+		}
 
 
 		[TestMethod]
@@ -741,7 +741,7 @@ namespace RectifyTest
 			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 150), new Position(50, 274)); //completes w/o error //for whatever reason, only 274 height. Missed a row originally, I guess?
 			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(150, 150), new Position(250, 200)); //completes w/o error
 			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 25), new Position(100, 200)); //completes w/o error
-			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 200)); //completes w/o error
+			result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 200));
 
 			result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(15, 0), new Position(275, 274));
 

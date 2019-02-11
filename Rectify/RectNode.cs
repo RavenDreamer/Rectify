@@ -219,6 +219,17 @@ namespace RectifyUtils
 			}
 			HoleVertices = holeVerts;
 		}
+
+		internal string ToPointListString()
+		{
+			string output = "";
+			foreach (RectEdge re in this.Perimeter)
+			{
+				output += re.FirstPosition.xPos + "," + re.FirstPosition.yPos + System.Environment.NewLine;
+			}
+
+			return output;
+		}
 	}
 
 	/// <summary>

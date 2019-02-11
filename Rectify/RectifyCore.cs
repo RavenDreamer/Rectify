@@ -1246,41 +1246,7 @@ namespace RectifyUtils
 				throw new Exception("Nope, we have bigger problems");
 			}
 
-			////the list of finalVerts is easy -- it's all the verts of firstHole + all the verts of secondHole, + the intersection point
-			////if it's not a vert of secondHole. And if it's not a ver of secondhole, it's always convex due to the nature of our intersection (I *think*)
-			////since we always start a cut from a vertex, the vertex on the other side of the cut is already in firstHole.Vertices, but now there are two of them.
-			//List<Vertex> finalVerts = new List<Vertex>();
-			//finalVerts.AddRange(firstHole.Vertices);
-			//finalVerts.AddRange(secondHole.Vertices);
 
-			////if the spanning edge intersects a vertex, that vertex is now convex.
-			////if the spanning edge intersects a perimeter, there are now two convex 
-
-			//var secondQueryVert = finalVerts.Find(v => v.VertPosition.Equals(spanningEdge.SecondPosition));
-			//if (secondQueryVert == null)
-			//{
-			//	//add the two new verts we're about to create.
-			//	finalVerts.Add(new Vertex(new Position(spanningEdge.SecondPosition), false));
-			//	finalVerts.Add(new Vertex(new Position(spanningEdge.SecondPosition), false));
-			//}
-			//else
-			//{
-			//	//the vertex needs to have its concavity adjusted, potentially.
-			//	secondQueryVert.SetConvex();
-			//}
-
-			////the vertex @ spanningEdge.FirstPosition is no longer concave after being joined
-			//var firstQueryVert = finalVerts.Find(v => v.VertPosition.Equals(spanningEdge.FirstPosition));
-			//if (firstQueryVert == null)
-			//{
-			//	//add the two new verts we're about to create.
-			//	finalVerts.Add(new Vertex(new Position(spanningEdge.FirstPosition), false));
-			//	finalVerts.Add(new Vertex(new Position(spanningEdge.FirstPosition), false));
-			//}
-			//else
-			//{
-			//	firstQueryVert.SetConvex();
-			//}
 
 			if (firstIncision != null && secondIncision != null)
 			{
@@ -1927,15 +1893,22 @@ namespace RectifyUtils
 			{
 				Position startPos = rs.Vertices.First().VertPosition;
 				//look for edges opposite the cut
-				//don't double-count certain edges, so only look for linear / convex angles.
-				var containerEdgesWest = edges.FindAll(e => e.SecondPosition.xPos > startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrColinear(e.HeadingDirection, e.Next.HeadingDirection)));
-				var containerEdgesEast = edges.FindAll(e => e.SecondPosition.xPos <= startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrColinear(e.HeadingDirection, e.Next.HeadingDirection)));
+				//don't double-count certain edges, so only look for vertical / convex angles. If the vertex lies along the same line as a horiz. edge, we only care about the 
+				//angle OFF of that edge.
+				var containerEdgesWest = edges.FindAll(e => e.SecondPosition.xPos > startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrVertical(e.HeadingDirection, e.Next.HeadingDirection)));
+				var containerEdgesEast = edges.FindAll(e => e.SecondPosition.xPos <= startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrVertical(e.HeadingDirection, e.Next.HeadingDirection)));
 				if (containerEdgesWest.Count % 2 == 1 && containerEdgesEast.Count % 2 == 1)
 				{
 					//still a hole
 					carriedHoles.Add(rs);
 					//holes.Remove(rs);
 				}
+#if debug
+				else if (containerEdgesEast.Count % 2 != containerEdgesWest.Count % 2)
+				{
+					Console.WriteLine("odd...");
+				}
+#endif
 				else
 				{
 					//not a hole. skip.
@@ -1969,6 +1942,46 @@ namespace RectifyUtils
 			if (firstVector == secondVector)
 			{
 				return true;
+			}
+			switch (firstVector)
+			{
+				case Direction.East:
+					if (secondVector == Direction.South) return true;
+					break;
+				case Direction.South:
+					if (secondVector == Direction.West) return true;
+					break;
+				case Direction.West:
+					if (secondVector == Direction.North) return true;
+					break;
+				case Direction.North:
+					if (secondVector == Direction.East) return true;
+					break;
+				default:
+					break;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Tests whether the vertex formed between the two headings is convex or the same vertical direction.
+		/// </summary>
+		/// <param name="firstVector"></param>
+		/// <param name="secondVector"></param>
+		/// <returns></returns>
+		private static bool IsConvexOrVertical(Direction firstVector, Direction secondVector)
+		{
+			if (firstVector == secondVector)
+			{
+				switch (firstVector)
+				{
+					case Direction.North:
+					case Direction.South:
+						return true;
+					default:
+						return false;
+				}
 			}
 			switch (firstVector)
 			{
