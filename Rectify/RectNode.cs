@@ -116,6 +116,11 @@ namespace RectifyUtils
 		{
 			this.IsConcave = false;
 		}
+		public void SetConcave()
+		{
+			this.IsConcave = true;
+		}
+
 		public Position VertPosition { get; private set; }
 		public bool IsConcave { get; private set; }
 		public bool IsConvex
@@ -230,10 +235,55 @@ namespace RectifyUtils
 			string output = "";
 			foreach (RectEdge re in this.Perimeter)
 			{
-				output += re.FirstPosition.xPos + "," + re.FirstPosition.yPos + System.Environment.NewLine;
+				output += re.FirstPosition.xPos + "\t-" + re.FirstPosition.yPos + System.Environment.NewLine;
 			}
 
 			return output;
+		}
+
+		/// <summary>
+		/// Reverses the perimeter's direction as a hole becomes part of a shape.
+		/// </summary>
+		internal void ReversePerimeter()
+		{
+			List<RectEdge> perimTraversal = new List<RectEdge> { };
+			var firstPerim = this.Perimeter[0];
+			var workingPerim = this.Perimeter[0];
+			while (workingPerim.Next != firstPerim)
+			{
+				perimTraversal.Add(workingPerim);
+				workingPerim = workingPerim.Next;
+			}
+			perimTraversal.Add(workingPerim); //don't forget the last edge that completes the loop.
+											  //need to update .Next AND swap the first/last positions.
+			List<RectEdge> reversedPerimeter = new List<RectEdge>();
+			for (int i = perimTraversal.Count - 1; i >= 0; i--)
+			{
+				var reverseEdge = perimTraversal[i].SwappedPositions;
+				reversedPerimeter.Add(reverseEdge);
+			}
+			//now walk the reversed perimeter forwards, setting next
+			for (int i = 0; i < reversedPerimeter.Count - 1; i++)
+			{
+				reversedPerimeter[i].Next = reversedPerimeter[i + 1];
+			}
+			//and the last loops around to the first
+			reversedPerimeter.Last().Next = reversedPerimeter[0];
+
+			this.Perimeter = reversedPerimeter;
+
+			//reversing the perimeter also swaps the concavity of vertices.
+			foreach (Vertex v in this._vertices)
+			{
+				if (v.IsConcave)
+				{
+					v.SetConvex();
+				}
+				else
+				{
+					v.SetConcave();
+				}
+			}
 		}
 	}
 
@@ -454,6 +504,20 @@ namespace RectifyUtils
 
 				throw new Exception("Unable to determine heading");
 			}
+		}
+
+		/// <summary>
+		/// Returns a new edge with the positions swapped
+		/// </summary>
+		public RectEdge SwappedPositions
+		{
+
+			get
+			{
+				return new RectEdge(this.SecondPosition, this.FirstPosition, this.EdgeType);
+			}
+
+
 		}
 
 		/// <summary>
