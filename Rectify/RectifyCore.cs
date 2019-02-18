@@ -1464,6 +1464,10 @@ namespace RectifyUtils
 				foreach (RectShape r in retShapes)
 				{
 					perimList.AddRange(r.Perimeter);
+					foreach (RectShape h in r.Holes)
+					{
+						perimList.AddRange(h.Perimeter);
+					}
 				}
 
 				if (EdgeIntersectsPerimeter(perimList, rEdge, out List<RectEdge> intersectingEdges))
@@ -1593,11 +1597,14 @@ namespace RectifyUtils
 
 						foreach (RectShape hole in rShape.Holes)
 						{
-							if (hole.Vertices.Find(v => v.VertPosition.Equals(rEdge.FirstPosition)) != null)
+
+							//TODO: THis is not guaranteed to be a vertex anymore.Need to check the hole perimeters too
+
+							if (hole.Perimeter.Find(v => v.FirstPosition.Equals(rEdge.FirstPosition)) != null)
 							{
 								firstHole = hole;
 							}
-							if (hole.Vertices.Find(v => v.VertPosition.Equals(rEdge.SecondPosition)) != null)
+							if (hole.Perimeter.Find(v => v.FirstPosition.Equals(rEdge.SecondPosition)) != null)
 							{
 								secondHole = hole;
 							}
@@ -1619,17 +1626,11 @@ namespace RectifyUtils
 						   (firstHole != null && secondHole == null))
 						{
 							//I think we've mooted this now?
-							throw new Exception("Tried to join a single hole");
+							//throw new Exception("Tried to join a single hole");
 							//TODO: Just skip this chord I guess?
 
-							//I think this is the inverse half of the below code w/ the same crude hack
-							Console.WriteLine("Chord cut appears to have been mooted. Skipping.");
-
-							//crude hack
-							shapesToAdd.Add(rShape);
-							shapeToRemove = rShape;
-							//end crude hack
-							break;
+							//look for the shape which actually matches this
+							continue;
 
 						}
 
@@ -1688,7 +1689,7 @@ namespace RectifyUtils
 							//firstIncision is a hole
 							foreach (RectShape hole in rShape.Holes)
 							{
-								if (hole.Vertices.Find(v => v.VertPosition.Equals(rEdge.FirstPosition)) != null)
+								if (hole.Perimeter.Find(v => v.FirstPosition.Equals(rEdge.FirstPosition)) != null)
 								{
 									joinedHole = hole;
 									break;
@@ -1700,7 +1701,7 @@ namespace RectifyUtils
 							//firstIncision is a hole
 							foreach (RectShape hole in rShape.Holes)
 							{
-								if (hole.Vertices.Find(v => v.VertPosition.Equals(rEdge.SecondPosition)) != null)
+								if (hole.Perimeter.Find(v => v.FirstPosition.Equals(rEdge.SecondPosition)) != null)
 								{
 									joinedHole = hole;
 									break;
@@ -1710,21 +1711,11 @@ namespace RectifyUtils
 						if (joinedHole == null)
 						{
 							//I think we're accounting for this now?
-							throw new Exception("Tried to join to absent hole");
+							//throw new Exception("Tried to join to absent hole");
 							//TODO: Just skip this chord I guess?
 
-							//I think the "appropriate" way to handle it would be to build out the
-							//edge of the incision we did find until we run into the perimeter of another shape.
-							//to create a 1-d edge but not actually doing any cutting.
-							//TODO: DO THAT!
-							Console.WriteLine("Chord cut appears to have been mooted. Skipping.");
-
-							//crude hack
-							shapesToAdd.Add(rShape);
-							shapeToRemove = rShape;
-							//end crude hack
-
-							break;
+							//look for the shape which actually matches this
+							continue;
 						}
 
 						RectShape mergedShape = CombineShapesUsingEdge(rShape, joinedHole, rEdge);
@@ -2037,29 +2028,7 @@ namespace RectifyUtils
 			//because 2-d edges exist (two edges on the same 2 points, with the firstPosition && secondPosition swapped)
 			//we need to additionally find the edge whose heading makes a convex angle with ours, or a straight line.
 
-			RectEdge firstIncision = null;
-			RectEdge secondIncision = null;
-
-			var firstIncisionList = rectShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(chord.FirstPosition));
-			var secondIncisionList = rectShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(chord.SecondPosition));
-
-			if (firstIncisionList.Count == 1)
-			{
-				firstIncision = firstIncisionList[0];
-			}
-			else
-			{
-				firstIncision = firstIncisionList.Find(edge => IsConvexOrColinear(chord.HeadingDirection, edge.HeadingDirection));
-			}
-
-			if (secondIncisionList.Count == 1)
-			{
-				secondIncision = secondIncisionList[0];
-			}
-			else
-			{
-				secondIncision = secondIncisionList.Find(edge => IsConvexOrColinear(chord.HeadingDirection, edge.HeadingDirection));
-			}
+			FindIncisionsFromSpanningEdge(rectShape, rectShape, chord, out RectEdge firstIncision, out RectEdge secondIncision);
 
 
 			if (firstIncision != null && secondIncision != null)
