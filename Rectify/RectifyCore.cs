@@ -1820,7 +1820,7 @@ namespace RectifyUtils
 				}
 				//use select here to get the relevant position -> where x == rEdge.FirstPosition.xPos, since one of the positions isn't the intersecting one
 				var orderedByY = CollapseEdgesToPoints(intersectingEdges, rEdge.FirstPosition.xPos, false)
-					.OrderBy(p => p.xPos).ToList();
+					.OrderBy(p => p.yPos).ToList();
 				//create new line segments to cut on, topMost -> orderByY[0], orderByY[0] -> orderByY[1] ->... orderByY[N] -> bottomMost
 
 				if (intersectingEdges.Count == 1)
