@@ -730,6 +730,27 @@ namespace RectifyTest
 			Assert.AreEqual(2, output[0].Holes.Count, "Did not get 2 holes as expected");
 		}
 
+		[TestMethod]
+		public void ExciseHoleTest()
+		{
+
+
+			var result = Rectify.GetRectNodes(TestData.ExcisedHoleIsland());
+			var output = Rectify.TraverseShapeOutlines(result);
+			var polygons = Rectify.FindVertsFromEdges(output);
+
+			var subpolygons = new List<RectShape>();
+			foreach (var p in polygons)
+			{
+				subpolygons.AddRange(Rectify.FirstLevelDecomposition(p));
+			}
+
+			foreach (RectShape rs in subpolygons)
+			{
+				Assert.IsTrue(rs.Holes.Count < 2, "Did not get less than 2 holes as expected");
+			}
+
+		}
 
 		[TestMethod]
 		public void MakeRimworldSaveTest()
@@ -744,12 +765,26 @@ namespace RectifyTest
 			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 150), new Position(50, 274)); //completes w/o error //for whatever reason, only 274 height. Missed a row originally, I guess?
 			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(150, 150), new Position(250, 200)); //completes w/o error
 			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(0, 25), new Position(100, 200)); //completes w/o error
-			result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 200));
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(100, 0), new Position(275, 200)); //completes w/o error
 
-			result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(15, 0), new Position(275, 274));
+			//result = Rectify.MakeRectangles(TestData.DesertTitans(), new Position(15, 0), new Position(275, 274));
 
-			//result = Rectify.MakeRectangles(TestData.DesertTitans());
-			Assert.AreEqual(100, result.Count, "holy cow we made it through");
+			result = Rectify.MakeRectangles(TestData.DesertTitans());
+			Assert.AreEqual(724, result.Count, "Expect 724 rectangles, probably");
+
+			//let's make sure that no rectangle overlaps. That would be super sad :(
+			for (int i = 0; i < result.Count; i++)
+			{
+				var rr = result[i];
+				for (int j = i + 1; j < result.Count; j++)
+				{
+					var rr_other = result[j];
+
+					Assert.IsFalse(
+						rr.Left < rr_other.Right && rr.Right > rr_other.Left &&
+						rr.Top > rr_other.Bottom && rr.Bottom < rr_other.Top, "Intersecting rectangles :(");
+				}
+			}
 		}
 
 

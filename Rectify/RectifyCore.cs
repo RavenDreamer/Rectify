@@ -371,18 +371,6 @@ namespace RectifyUtils
 			var subpolygons = new List<RectShape>();
 			foreach (var p in polygons)
 			{
-				//var minX = p.Vertices.Min(vae => vae.VertPosition.xPos);
-				//var maxX = p.Vertices.Max(vae => vae.VertPosition.xPos);
-				//for (int i = minX; i <= maxX; i++)
-				//{
-				//	var edgeCounter = p.Perimeter.FindAll(e => e.SecondPosition.xPos == i && (e.HeadingDirection == Direction.East || e.HeadingDirection == Direction.West));
-				//	if (edgeCounter.Count % 2 == 1)
-				//	{
-				//		Console.WriteLine("weerid");
-				//	}
-				//}
-
-
 				subpolygons.AddRange(FirstLevelDecomposition(p));
 			}
 
@@ -400,213 +388,6 @@ namespace RectifyUtils
 
 			return rectangles;
 		}
-
-		///// <summary>
-		///// Finds the initial list of cogrid chords to cut for decomposition
-		///// </summary>
-		///// <param name="rectShape"></param>
-		//public static List<RectEdge> FindCuttingChords(RectShape rectShape)
-		//{
-		//	//Maintain two separate lists: horizontal cogrid chords, and vertical ones.
-		//	//if either list is empty, do all of the other list. If both lists have values, have
-		//	//to bust out the graph theory to figure out which chords to use.
-
-		//	List<Vertex> concaves = rectShape.Vertices.FindAll(v => v.IsConcave == true);
-		//	HashSet<RectEdge> vertEdges = new HashSet<RectEdge>();
-		//	HashSet<RectEdge> horizEdges = new HashSet<RectEdge>();
-
-		//	foreach (Vertex v in concaves)
-		//	{
-		//		//vertical cogrid chords
-		//		List<Vertex> vertCogrids = concaves.FindAll(q => q.Vert.xPos == v.Vert.xPos && q.Vert.yPos != v.Vert.yPos);
-		//		//it's only a valid chord if the shape doesn't have an edge at every step between the two verts.
-		//		Vertex topV;
-		//		Vertex bottomV;
-		//		foreach (Vertex cg in vertCogrids)
-		//		{
-		//			if (cg.Vert.yPos > v.Vert.yPos)
-		//			{
-		//				bottomV = cg;
-		//				topV = v;
-		//			}
-		//			else
-		//			{
-		//				bottomV = v;
-		//				topV = cg;
-		//			}
-		//			//early out if we've already looked at these verts
-		//			RectEdge prospectiveEdge = new RectEdge(topV.Vert, bottomV.Vert, EdgeType.None);
-		//			if (vertEdges.Contains(prospectiveEdge)) continue;
-
-		//			//look to see if there is an open edge space in any point between the two verts
-		//			RectEdge interveningEdge = rectShape.Perimeter.Find(r => (r.FirstPosition.xPos == v.Vert.xPos &&
-		//																			   r.FirstPosition.yPos < bottomV.Vert.yPos &&
-		//																			   r.FirstPosition.yPos > topV.Vert.yPos) ||
-		//																			   (r.SecondPosition.xPos == v.Vert.xPos &&
-		//																			   r.SecondPosition.yPos < bottomV.Vert.yPos &&
-		//																			   r.SecondPosition.yPos > topV.Vert.yPos));
-		//			if (interveningEdge != null) continue; //can't construct chord, there's something in the way
-
-		//			//this is a valid vertical chord
-		//			vertEdges.Add(prospectiveEdge);
-
-		//		}
-
-		//		//horizontal cogrid chords
-		//		List<Vertex> horizCogrids = concaves.FindAll(q => q.Vert.xPos != v.Vert.xPos && q.Vert.yPos == v.Vert.yPos);
-		//		//it's only a valid chord if the shape doesn't have an edge at every step between the two verts.
-		//		Vertex leftV;
-		//		Vertex rightV;
-		//		foreach (Vertex cg in horizCogrids)
-		//		{
-		//			if (cg.Vert.xPos > v.Vert.xPos)
-		//			{
-		//				rightV = cg;
-		//				leftV = v;
-		//			}
-		//			else
-		//			{
-		//				rightV = v;
-		//				leftV = cg;
-		//			}
-		//			//early out if we've already looked at these verts
-		//			RectEdge prospectiveEdge = new RectEdge(leftV.Vert, rightV.Vert, EdgeType.None);
-		//			if (horizEdges.Contains(prospectiveEdge)) continue;
-
-		//			//look to see if there is an open edge space in any point between the two verts
-		//			RectEdge interveningEdge = rectShape.Perimeter.Find(r => (r.FirstPosition.yPos == v.Vert.yPos &&
-		//																			   r.FirstPosition.xPos < rightV.Vert.yPos &&
-		//																			   r.FirstPosition.xPos > leftV.Vert.yPos) ||
-		//																			   (r.SecondPosition.yPos == v.Vert.yPos &&
-		//																			   r.SecondPosition.yPos < rightV.Vert.yPos &&
-		//																			   r.SecondPosition.yPos > leftV.Vert.yPos));
-		//			if (interveningEdge != null) continue; //can't construct chord, there's something in the way
-
-		//			//this is a valid vertical chord
-		//			horizEdges.Add(prospectiveEdge);
-		//		}
-		//	}
-		//	//some special cases
-		//	if (horizEdges.Count == 0 && vertEdges.Count == 0)
-		//	{
-		//		//no cogrid chords. Existing shape is fine to decompose as-is.
-		//		return new List<RectEdge>() { };
-		//	}
-		//	if (horizEdges.Count == 0)
-		//	{
-		//		//only vertical cogrid chords; do all of them
-		//		return vertEdges.ToList();
-		//	}
-		//	if (vertEdges.Count == 0)
-		//	{
-		//		//only horizontal cogrid chords; do all of them
-		//		return horizEdges.ToList();
-		//	}
-
-		//	//need to further make a differentiation.
-		//	return FindBipartiteChords(vertEdges.ToList(), horizEdges.ToList());
-		//}
-
-		///// <summary>
-		///// Use Graph theory to determine which chords will result in the minimum number of rectangles
-		///// </summary>
-		///// <param name="vertEdges"></param>
-		///// <param name="horizEdges"></param>
-		///// <returns></returns>
-		//private static List<RectEdge> FindBipartiteChords(List<RectEdge> vertEdges, List<RectEdge> horizEdges)
-		//{
-		//	//now we need to construct the bipartite flow graph
-
-		//	RectFlowNode sourceNode = new RectFlowNode(null, FlowType.source);
-		//	RectFlowNode sinkNode = new RectFlowNode(null, FlowType.sink);
-		//	List<RectFlowNode> vertNodes = new List<RectFlowNode>();
-		//	List<RectFlowNode> horizNodes = new List<RectFlowNode>();
-		//	foreach (RectEdge hedge in horizEdges)
-		//	{
-		//		//source has connections to each horiz node (U nodes)
-		//		RectFlowNode node = new RectFlowNode(hedge, FlowType.horizontal); //horizontal edges	
-		//		sourceNode.AddLink(node);
-
-		//		horizNodes.Add(node);
-		//	}
-
-		//	foreach (RectEdge vedge in vertEdges)
-		//	{
-		//		//sink has connections from each vert node (V nodes)
-		//		RectFlowNode node = new RectFlowNode(vedge, FlowType.vertical); //vertical edges	
-		//		node.AddLink(sinkNode);
-
-		//		vertNodes.Add(node);
-		//	}
-
-		//	//nodes created, now set connections from U(horizontal) -> V(vertical).
-		//	//for each edge in horizEdges or vertEdges, if they intersect or share a vertex, a connection exists
-		//	//check for intersection
-		//	foreach (RectFlowNode vNode in vertNodes)
-		//	{
-		//		foreach (RectFlowNode hNode in horizNodes)
-		//		{
-		//			//check for shared vertices
-		//			if (vNode.Edge.FirstPosition.Equals(hNode.Edge.FirstPosition) ||
-		//			   vNode.Edge.FirstPosition.Equals(hNode.Edge.SecondPosition) ||
-		//			   vNode.Edge.SecondPosition.Equals(hNode.Edge.FirstPosition) ||
-		//			   vNode.Edge.SecondPosition.Equals(hNode.Edge.SecondPosition))
-		//			{
-		//				//share a vertex, so add a link from vert to horiz.
-		//				hNode.AddLink(vNode);
-		//			}
-		//			else if (LineSegmentsIntersect(vNode.Edge, hNode.Edge))
-		//			{
-		//				//intersect, so add a link from vert to horiz.
-		//				hNode.AddLink(vNode);
-		//			}
-		//		}
-		//	}
-
-		//	//Perform maximum Flow algorithm. This will modify the data in-place.
-		//	CalculateMaximumFlow(sourceNode, sinkNode);
-
-		//	//at this point, we are interested in all horiz <-- vert link pairs. (horiz = U, vert = V)
-		//	HashSet<RectEdgeEdge> maxMatching = new HashSet<RectEdgeEdge>();
-		//	foreach (RectFlowNode vfn in vertNodes)
-		//	{
-		//		foreach (RectFlowNode dest in vfn.DestinationNodes)
-		//		{
-		//			//this may be redundant
-		//			if (dest.FlowType == FlowType.horizontal)
-		//			{
-		//				maxMatching.Add(new RectEdgeEdge(dest.Edge, vfn.Edge, true));
-		//			}
-		//		}
-		//	}
-
-		//	//Kőnig’s theorem
-		//	//To construct such a cover, let U be the set of unmatched vertices in L[horizontal] possibly empty), 
-		//	//and let Z be the set of vertices that are either in U[horizontal] or are connected to U by alternating paths
-		//	//(paths that alternate between edges that are in the matching and edges that are not in the matching).
-
-		//	var uList = maxMatching.Select(ree => ree.FirstEdge);//maxmatching is <horizontal, vertical>, so only need to look for the firstEdge
-		//	List<RectFlowNode> zNodes = new List<RectFlowNode>(horizNodes.FindAll(hn => uList.Contains(hn.Edge) == false));
-
-		//	if (zNodes.Count == 0)
-		//	{
-		//		//edges to cut with are just U == the horizontal cuts from the matching.
-
-		//		return maxMatching.ToList().Select(mm => mm.FirstEdge).ToList();
-		//	}
-
-		//	BuildBidirectionalGraph(horizNodes, vertNodes);
-
-		//	var zEdges = FindAlternatingPathVerts(maxMatching, zNodes);
-		//	//Set (min. vertex cover) == all U[horizontal] not in Z + all V[vertical] in Z
-		//	//if Z == empty, this means Set == U!
-		//	List<RectEdge> cuttingChords = new List<RectEdge>();
-
-		//	cuttingChords.AddRange(horizEdges.Where(u => zEdges.Contains(u) == false));
-		//	cuttingChords.AddRange(vertEdges.Where(v => zEdges.Contains(v) == true));
-
-		//	return cuttingChords;
-		//}
 
 		/// <summary>
 		/// For the given RectShape, find pairs of cogrid concave vertices and use this to split the object
@@ -940,6 +721,7 @@ namespace RectifyUtils
 								var otherPotentialHole = holeAndShape[1];
 
 								//if this is a hole, there will be more concave verts than convex ones. (4 more)
+								RectShape nonHole;
 								int concaveVertCount = potentialHole.Vertices.FindAll(v => v.IsConcave).Count;
 								int convexVertCount = potentialHole.Vertices.Count - concaveVertCount;
 								if (concaveVertCount < convexVertCount)
@@ -948,6 +730,7 @@ namespace RectifyUtils
 									workingShape.AddHole(otherPotentialHole);
 
 									//not actually a hole
+									nonHole = potentialHole;
 									shapesToDecompose.Add(potentialHole);
 
 									//keep workingShape in the shapesToDecompose list as well
@@ -957,8 +740,14 @@ namespace RectifyUtils
 									workingShape.AddHole(potentialHole);
 
 									//not actually a hole
+									nonHole = otherPotentialHole;
 									shapesToDecompose.Add(otherPotentialHole);
 								}
+
+								//check rShape's holes, see if any now belong to the nonHole cut.
+								TransferHoles(workingShape, nonHole);
+
+
 								continue; //rerun this shape, now that it has one fewer holes
 							}
 							else
@@ -1648,6 +1437,7 @@ namespace RectifyUtils
 							var otherPotentialHole = holeAndShape[1];
 
 							//if this is a hole, there will be more concave verts than convex ones. (4 more)
+							RectShape nonHole;
 							int concaveVertCount = potentialHole.Vertices.FindAll(v => v.IsConcave).Count;
 							int convexVertCount = potentialHole.Vertices.Count - concaveVertCount;
 							if (concaveVertCount < convexVertCount)
@@ -1656,6 +1446,7 @@ namespace RectifyUtils
 								rShape.AddHole(otherPotentialHole);
 
 								//not actually a hole
+								nonHole = potentialHole;
 								shapesToAdd.Add(potentialHole);
 							}
 							else
@@ -1663,9 +1454,12 @@ namespace RectifyUtils
 								rShape.AddHole(potentialHole);
 
 								//not actually a hole
-
+								nonHole = otherPotentialHole;
 								shapesToAdd.Add(otherPotentialHole);
 							}
+							//check rShape's holes, see if any now belong to the nonHole cut.
+							TransferHoles(rShape, nonHole);
+
 							break;
 						}
 						else
@@ -1742,6 +1536,64 @@ namespace RectifyUtils
 
 			return retShapes;
 
+		}
+
+		/// <summary>
+		/// Tests each hole in donorShape to see if now belongs in carrierShape
+		/// </summary>
+		/// <param name="carrierShape"></param>
+		/// <param name="donorShape"></param>
+		private static List<RectShape> TransferHoles(RectShape donorShape, RectShape carrierShape = null, List<RectEdge> edgeList = null)
+		{
+			if (edgeList == null)
+			{
+				edgeList = carrierShape.Perimeter;
+			}
+
+			List<RectShape> carriedHoles = new List<RectShape>();
+
+
+			foreach (RectShape rs in donorShape.Holes)
+			{
+				Position startPos = rs.Vertices.First().VertPosition;
+				//look for edges opposite the cut
+				//don't double-count certain edges, so only look for vertical / convex angles. If the vertex lies along the same line as a horiz. edge, we only care about the 
+				//angle OFF of that edge.
+				var containerEdgesWest = edgeList.FindAll(e => e.SecondPosition.xPos > startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrVertical(e.HeadingDirection, e.Next.HeadingDirection)));
+				var containerEdgesEast = edgeList.FindAll(e => e.SecondPosition.xPos <= startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrVertical(e.HeadingDirection, e.Next.HeadingDirection)));
+				if (containerEdgesWest.Count % 2 == 1 && containerEdgesEast.Count % 2 == 1)
+				{
+					//still a hole
+					carriedHoles.Add(rs);
+					//holes.Remove(rs);
+				}
+#if debug
+				else if (containerEdgesEast.Count % 2 != containerEdgesWest.Count % 2)
+				{
+					Console.WriteLine("odd...");
+				}
+#endif
+				else
+				{
+					//not a hole. skip.
+				}
+			}
+
+			//now remove the carried holes, since another shape *can't* have them.
+			foreach (RectShape rs in carriedHoles)
+			{
+				donorShape.RemoveHole(rs);
+			}
+
+			if (carrierShape != null)
+			{
+				foreach (RectShape rs in carriedHoles)
+				{
+					carrierShape.AddHole(rs);
+				}
+			}
+
+			return carriedHoles;
 		}
 
 		private static List<RectEdge> GetSubEdgesFromIntersection(RectEdge rEdge, List<RectEdge> intersectingEdges)
@@ -2158,43 +2010,8 @@ namespace RectifyUtils
 			//if the total number is odd, we're in a hole. If it's even, we're not.
 			//remember: even 1d segments have perimeters going both ways, and every point has exactly %2 
 			//edges touching it, one with firstPosition, one with secondPosition
-			List<RectShape> carriedHoles = new List<RectShape>();
+			List<RectShape> carriedHoles = TransferHoles(parentShape, edgeList: edges);
 
-			//switch (cutSide)
-			//{
-			//	case Direction.West:
-			//	case Direction.East:
-			foreach (RectShape rs in parentShape.Holes)
-			{
-				Position startPos = rs.Vertices.First().VertPosition;
-				//look for edges opposite the cut
-				//don't double-count certain edges, so only look for vertical / convex angles. If the vertex lies along the same line as a horiz. edge, we only care about the 
-				//angle OFF of that edge.
-				var containerEdgesWest = edges.FindAll(e => e.SecondPosition.xPos > startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrVertical(e.HeadingDirection, e.Next.HeadingDirection)));
-				var containerEdgesEast = edges.FindAll(e => e.SecondPosition.xPos <= startPos.xPos && e.SecondPosition.yPos == startPos.yPos && (IsConvexOrVertical(e.HeadingDirection, e.Next.HeadingDirection)));
-				if (containerEdgesWest.Count % 2 == 1 && containerEdgesEast.Count % 2 == 1)
-				{
-					//still a hole
-					carriedHoles.Add(rs);
-					//holes.Remove(rs);
-				}
-#if debug
-				else if (containerEdgesEast.Count % 2 != containerEdgesWest.Count % 2)
-				{
-					Console.WriteLine("odd...");
-				}
-#endif
-				else
-				{
-					//not a hole. skip.
-				}
-			}
-
-			//now remove the carried holes, since another shape *can't* have them.
-			foreach (RectShape rs in carriedHoles)
-			{
-				parentShape.RemoveHole(rs);
-			}
 #if debug
 			var retShape = FilloutVerts(new RectShape() { Perimeter = edges, Vertices = vertices, Holes = carriedHoles });
 			if (Math.Abs(retShape.Vertices.FindAll(v => v.IsConcave).Count - retShape.Vertices.FindAll(v => v.IsConvex).Count) != 4)

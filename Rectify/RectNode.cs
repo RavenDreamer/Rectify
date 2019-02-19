@@ -188,7 +188,30 @@ namespace RectifyUtils
 	{
 
 		public List<RectEdge> Perimeter { get; set; } = new List<RectEdge>();
-		public List<Vertex> Vertices { get; set; } = new List<Vertex>();
+
+		private List<Vertex> _vertices = new List<Vertex>();
+		public List<Vertex> Vertices
+		{
+			get
+			{
+				return _vertices;
+			}
+			set
+			{
+#if debug
+				_vertices = value;
+				//if this is a hole, there will be more concave verts than convex ones. (4 more)
+				int concaveVertCount = _vertices.FindAll(v => v.IsConcave).Count;
+				int convexVertCount = _vertices.Count - concaveVertCount;
+				if (_vertices.Count != 0 && Math.Abs(concaveVertCount - convexVertCount) != 4)
+				{
+					Console.WriteLine("blarugh");
+				}
+#else
+				_vertices = value;
+#endif
+			}
+		}
 
 		private List<RectShape> _holes = new List<RectShape>(); //easier when empty;
 		public List<RectShape> Holes
@@ -434,6 +457,38 @@ namespace RectifyUtils
 			get
 			{
 				return bottomRight.yPos - topLeft.yPos;
+			}
+		}
+
+		public int Left
+		{
+			get
+			{
+				return topLeft.xPos;
+			}
+		}
+
+		public int Top
+		{
+			get
+			{
+				return bottomRight.yPos;
+			}
+		}
+
+		public int Right
+		{
+			get
+			{
+				return bottomRight.xPos;
+			}
+		}
+
+		public int Bottom
+		{
+			get
+			{
+				return topLeft.yPos;
 			}
 		}
 	}
