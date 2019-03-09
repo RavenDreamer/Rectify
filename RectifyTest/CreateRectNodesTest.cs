@@ -721,6 +721,13 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
+		public void NeighborsInitialTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.SquareWithSelfHoleCut());
+			Assert.Fail();
+		}
+
+		[TestMethod]
 		public void RoomHolesTest()
 		{
 
