@@ -335,7 +335,15 @@ namespace RectifyUtils
 		private EdgeType[] TopEdge;
 		private EdgeType[] BottomEdge;
 
-		private Dictionary<RectNeighbor, List<EdgeRange>> RectNeighbors = new Dictionary<RectNeighbor, List<EdgeRange>>();
+		private HashSet<RectNeighbor> neighbors = new HashSet<RectNeighbor>();
+
+		public int NeighborCount
+		{
+			get
+			{
+				return neighbors.Count;
+			}
+		}
 
 		private readonly Position topLeft;
 		private readonly Position bottomRight;
@@ -416,172 +424,177 @@ namespace RectifyUtils
 		/// </summary>
 		/// <param name="neighbors"></param>
 		/// <param name="direction"></param>
-		internal void SetNeighbors(List<RectifyRectangle> neighbors, Direction direction)
+		internal void SetNeighbors(List<RectifyRectangle> newNeighbors, Direction direction)
 		{
-			foreach (RectifyRectangle neighbor in neighbors)
+			foreach (RectNeighbor rn in (newNeighbors.Select(rr => new RectNeighbor() { Neighbor = rr, NeighborDirection = direction })))
 			{
-				//EdgeType[] neighborEdge;
-				EdgeType[] myEdge;
-				int neighborStartOffset = 0;
-				int startOffset = 0;
-				int endIndex = 0;
-				int startCoord;
-
-
-				//calculate overlapping areas. e.g. for West:
-				//if neighbor.bottom < this.bottom, start at neighbor.right[this.bottom]
-				//if neighbor.bottom > this.bottom, start at neighbor.right[0]
-
-				//if neighbor.top > this.top, end at neighbor.right[this.top]
-				//if neighbor.top < this.top, end at neighbor.right[N]
-				switch (direction)
-				{
-					case Direction.East:
-						startCoord = this.Bottom;
-						//neighborEdge = neighbor.LeftEdge;
-						myEdge = RightEdge;
-						//start offsets
-						if (neighbor.Bottom < this.Bottom)
-						{
-							neighborStartOffset = this.Bottom - neighbor.Bottom;
-							startOffset = 0;
-						}
-						else if (neighbor.Bottom > this.Bottom)
-						{
-							neighborStartOffset = 0;
-							startOffset = neighbor.Bottom - this.Bottom;
-						}
-						//end index
-						if (neighbor.Top > this.Top)
-						{
-							endIndex = this.Top - (this.Bottom + startOffset);
-						}
-						else if (neighbor.Top < this.Top)
-						{
-							endIndex = neighbor.Top - (neighbor.Bottom + neighborStartOffset);
-						}
-						break;
-					case Direction.West:
-						startCoord = this.Bottom;
-						//neighborEdge = neighbor.RightEdge;
-						myEdge = LeftEdge;
-						//start offsets
-						if (neighbor.Bottom < this.Bottom)
-						{
-							neighborStartOffset = this.Bottom - neighbor.Bottom;
-							startOffset = 0;
-						}
-						else if (neighbor.Bottom > this.Bottom)
-						{
-							neighborStartOffset = 0;
-							startOffset = neighbor.Bottom - this.Bottom;
-						}
-						//end index
-						if (neighbor.Top > this.Top)
-						{
-							endIndex = this.Top - (this.Bottom + startOffset);
-						}
-						else if (neighbor.Top < this.Top)
-						{
-							endIndex = neighbor.Top - (neighbor.Bottom + neighborStartOffset);
-						}
-						break;
-					case Direction.South:
-						startCoord = this.Left;
-						//neighborEdge = neighbor.TopEdge;
-						myEdge = BottomEdge;
-						//start offsets
-						if (neighbor.Left < this.Left)
-						{
-							neighborStartOffset = this.Left - neighbor.Left;
-							startOffset = 0;
-						}
-						else if (neighbor.Left > this.Left)
-						{
-							neighborStartOffset = 0;
-							startOffset = neighbor.Left - this.Left;
-						}
-						//end index
-						if (neighbor.Right > this.Right)
-						{
-							endIndex = this.Right - (this.Left + startOffset);
-						}
-						else if (neighbor.Right < this.Right)
-						{
-							endIndex = neighbor.Right - (neighbor.Left + neighborStartOffset);
-						}
-						break;
-					case Direction.North:
-						startCoord = this.Left;
-						//neighborEdge = neighbor.BottomEdge;
-						myEdge = TopEdge;
-						//start offsets
-						if (neighbor.Left < this.Left)
-						{
-							neighborStartOffset = this.Left - neighbor.Left;
-							startOffset = 0;
-						}
-						else if (neighbor.Left > this.Left)
-						{
-							neighborStartOffset = 0;
-							startOffset = neighbor.Left - this.Left;
-						}
-						//end index
-						if (neighbor.Right > this.Right)
-						{
-							endIndex = this.Right - (this.Left + startOffset);
-						}
-						else if (neighbor.Right < this.Right)
-						{
-							endIndex = neighbor.Right - (neighbor.Left + neighborStartOffset);
-						}
-						break;
-					default:
-						throw new Exception("Unknown direction for neighbors");
-				}
-
-
-				List<EdgeRange> neighborEdgeRangeList = new List<EdgeRange>();
-
-				EdgeType prevEdgeType = myEdge[startOffset];
-				int prevStart = startCoord + startOffset;
-
-				for (int i = 0; i < endIndex; i++)
-				{
-					EdgeType currentEdge = myEdge[startOffset + i];
-					if (currentEdge == prevEdgeType)
-					{
-						//continue
-					}
-					else
-					{
-						//make an EdgeRange up to this index
-						var newEdgeRange = new EdgeRange()
-						{
-							EdgeType = prevEdgeType,
-							LowRangeCoordinate = prevStart,
-							HighRangeCoordinate = prevStart + i,
-
-						};
-						neighborEdgeRangeList.Add(newEdgeRange);
-					}
-
-					prevEdgeType = currentEdge;
-				}
-				//make a final EdgeRange
-				var lastEdgeRange = new EdgeRange()
-				{
-					EdgeType = prevEdgeType,
-					LowRangeCoordinate = prevStart,
-					HighRangeCoordinate = prevStart + endIndex,
-
-				};
-				neighborEdgeRangeList.Add(lastEdgeRange);
-				RectNeighbor rNeighbor = new RectNeighbor() { Neighbor = neighbor, NeighborDirection = direction };
-
-				//add resultant edgelists back to neighborlist
-				RectNeighbors[rNeighbor] = neighborEdgeRangeList;
+				neighbors.Add(rn);
 			}
+
+			//foreach (RectifyRectangle neighbor in neighbors)
+			//{
+			//	//EdgeType[] neighborEdge;
+			//	EdgeType[] myEdge;
+			//	int neighborStartOffset = 0;
+			//	int startOffset = 0;
+			//	int endIndex = 0;
+			//	int startCoord;
+
+
+			//	//calculate overlapping areas. e.g. for West:
+			//	//if neighbor.bottom < this.bottom, start at neighbor.right[this.bottom]
+			//	//if neighbor.bottom > this.bottom, start at neighbor.right[0]
+
+			//	//if neighbor.top > this.top, end at neighbor.right[this.top]
+			//	//if neighbor.top < this.top, end at neighbor.right[N]
+			//	switch (direction)
+			//	{
+			//		case Direction.East:
+			//			startCoord = this.Bottom;
+			//			//neighborEdge = neighbor.LeftEdge;
+			//			myEdge = RightEdge;
+			//			//start offsets
+			//			if (neighbor.Bottom < this.Bottom)
+			//			{
+			//				neighborStartOffset = this.Bottom - neighbor.Bottom;
+			//				startOffset = 0;
+			//			}
+			//			else if (neighbor.Bottom > this.Bottom)
+			//			{
+			//				neighborStartOffset = 0;
+			//				startOffset = neighbor.Bottom - this.Bottom;
+			//			}
+			//			//end index
+			//			if (neighbor.Top > this.Top)
+			//			{
+			//				endIndex = this.Top - (this.Bottom + startOffset);
+			//			}
+			//			else if (neighbor.Top < this.Top)
+			//			{
+			//				endIndex = neighbor.Top - (neighbor.Bottom + neighborStartOffset);
+			//			}
+			//			break;
+			//		case Direction.West:
+			//			startCoord = this.Bottom;
+			//			//neighborEdge = neighbor.RightEdge;
+			//			myEdge = LeftEdge;
+			//			//start offsets
+			//			if (neighbor.Bottom < this.Bottom)
+			//			{
+			//				neighborStartOffset = this.Bottom - neighbor.Bottom;
+			//				startOffset = 0;
+			//			}
+			//			else if (neighbor.Bottom > this.Bottom)
+			//			{
+			//				neighborStartOffset = 0;
+			//				startOffset = neighbor.Bottom - this.Bottom;
+			//			}
+			//			//end index
+			//			if (neighbor.Top > this.Top)
+			//			{
+			//				endIndex = this.Top - (this.Bottom + startOffset);
+			//			}
+			//			else if (neighbor.Top < this.Top)
+			//			{
+			//				endIndex = neighbor.Top - (neighbor.Bottom + neighborStartOffset);
+			//			}
+			//			break;
+			//		case Direction.South:
+			//			startCoord = this.Left;
+			//			//neighborEdge = neighbor.TopEdge;
+			//			myEdge = BottomEdge;
+			//			//start offsets
+			//			if (neighbor.Left < this.Left)
+			//			{
+			//				neighborStartOffset = this.Left - neighbor.Left;
+			//				startOffset = 0;
+			//			}
+			//			else if (neighbor.Left > this.Left)
+			//			{
+			//				neighborStartOffset = 0;
+			//				startOffset = neighbor.Left - this.Left;
+			//			}
+			//			//end index
+			//			if (neighbor.Right > this.Right)
+			//			{
+			//				endIndex = this.Right - (this.Left + startOffset);
+			//			}
+			//			else if (neighbor.Right < this.Right)
+			//			{
+			//				endIndex = neighbor.Right - (neighbor.Left + neighborStartOffset);
+			//			}
+			//			break;
+			//		case Direction.North:
+			//			startCoord = this.Left;
+			//			//neighborEdge = neighbor.BottomEdge;
+			//			myEdge = TopEdge;
+			//			//start offsets
+			//			if (neighbor.Left < this.Left)
+			//			{
+			//				neighborStartOffset = this.Left - neighbor.Left;
+			//				startOffset = 0;
+			//			}
+			//			else if (neighbor.Left > this.Left)
+			//			{
+			//				neighborStartOffset = 0;
+			//				startOffset = neighbor.Left - this.Left;
+			//			}
+			//			//end index
+			//			if (neighbor.Right > this.Right)
+			//			{
+			//				endIndex = this.Right - (this.Left + startOffset);
+			//			}
+			//			else if (neighbor.Right < this.Right)
+			//			{
+			//				endIndex = neighbor.Right - (neighbor.Left + neighborStartOffset);
+			//			}
+			//			break;
+			//		default:
+			//			throw new Exception("Unknown direction for neighbors");
+			//	}
+
+
+			//	List<EdgeRange> neighborEdgeRangeList = new List<EdgeRange>();
+
+			//	EdgeType prevEdgeType = myEdge[startOffset];
+			//	int prevStart = startCoord + startOffset;
+
+			//	for (int i = 0; i < endIndex; i++)
+			//	{
+			//		EdgeType currentEdge = myEdge[startOffset + i];
+			//		if (currentEdge == prevEdgeType)
+			//		{
+			//			//continue
+			//		}
+			//		else
+			//		{
+			//			//make an EdgeRange up to this index
+			//			var newEdgeRange = new EdgeRange()
+			//			{
+			//				EdgeType = prevEdgeType,
+			//				LowRangeCoordinate = prevStart,
+			//				HighRangeCoordinate = prevStart + i,
+
+			//			};
+			//			neighborEdgeRangeList.Add(newEdgeRange);
+			//		}
+
+			//		prevEdgeType = currentEdge;
+			//	}
+			//	//make a final EdgeRange
+			//	var lastEdgeRange = new EdgeRange()
+			//	{
+			//		EdgeType = prevEdgeType,
+			//		LowRangeCoordinate = prevStart,
+			//		HighRangeCoordinate = prevStart + endIndex,
+
+			//	};
+			//	neighborEdgeRangeList.Add(lastEdgeRange);
+			//	RectNeighbor rNeighbor = new RectNeighbor() { Neighbor = neighbor, NeighborDirection = direction };
+
+			//	//add resultant edgelists back to neighborlist
+			//	RectNeighbors[rNeighbor] = neighborEdgeRangeList;
+			//}
 		}
 
 

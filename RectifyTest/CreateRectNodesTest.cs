@@ -723,8 +723,12 @@ namespace RectifyTest
 		[TestMethod]
 		public void NeighborsInitialTest()
 		{
-			var result = Rectify.MakeRectangles(TestData.SquareWithSelfHoleCut());
-			Assert.Fail();
+			var result = Rectify.MakeRectangles(TestData.OneDRectangleTest());
+			Assert.AreEqual(3, result[0].NeighborCount, "0,0::3,2 has 3 neighbors (2 east, 1 south)");
+			Assert.AreEqual(3, result[1].NeighborCount, "0,2::8,8 has 3 neighbors (3 north)");
+			Assert.AreEqual(3, result[2].NeighborCount, "4,0::8,2 has 3 neighbors (2 west, 1 south)");
+			Assert.AreEqual(3, result[3].NeighborCount, "3,0::4,1 has 3 neighbors (1 east, 1 west, 1 south)");
+			Assert.AreEqual(4, result[4].NeighborCount, "3,1::4,2 has 4 neighbors (1 east, 1 west, 1 south, 1 north)");
 		}
 
 		[TestMethod]

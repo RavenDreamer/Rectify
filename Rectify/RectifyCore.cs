@@ -390,19 +390,19 @@ namespace RectifyUtils
 			foreach (RectifyRectangle linkRect in rectangles)
 			{
 				//left edge
-				var leftNeighbors = rectangles.FindAll(r => r.Right == linkRect.Left && ((linkRect.Top > r.Top && linkRect.Bottom < r.Top) || linkRect.Top > r.Bottom && linkRect.Bottom < r.Bottom));
+				var leftNeighbors = rectangles.FindAll(r => r.Right == linkRect.Left && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
 				linkRect.SetNeighbors(leftNeighbors, Direction.West);
 
 				//right edge
-				var rightNeighbors = rectangles.FindAll(r => r.Left == linkRect.Right && ((linkRect.Top > r.Top && linkRect.Bottom < r.Top) || linkRect.Top > r.Bottom && linkRect.Bottom < r.Bottom));
+				var rightNeighbors = rectangles.FindAll(r => r.Left == linkRect.Right && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
 				linkRect.SetNeighbors(rightNeighbors, Direction.East);
 
 				//top edge
-				var topNeighbors = rectangles.FindAll(r => r.Bottom == linkRect.Top && ((linkRect.Right > r.Right && linkRect.Left < r.Right) || linkRect.Right > r.Left && linkRect.Left < r.Left));
+				var topNeighbors = rectangles.FindAll(r => r.Bottom == linkRect.Top && (linkRect.Left < r.Right && linkRect.Right > r.Left));
 				linkRect.SetNeighbors(topNeighbors, Direction.North);
 
 				//bottom edge
-				var bottomNeighbors = rectangles.FindAll(r => r.Top == linkRect.Bottom && ((linkRect.Right > r.Right && linkRect.Left < r.Right) || linkRect.Right > r.Left && linkRect.Left < r.Left));
+				var bottomNeighbors = rectangles.FindAll(r => r.Top == linkRect.Bottom && (linkRect.Left < r.Right && linkRect.Right > r.Left));
 				linkRect.SetNeighbors(bottomNeighbors, Direction.South);
 			}
 
