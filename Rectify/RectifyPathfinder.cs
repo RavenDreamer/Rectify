@@ -252,6 +252,13 @@ namespace RectifyUtils
 			{
 				//calculate the whole path
 				List<Position> path = GetPathBetweenRectangles(startPosition, endPosition, startRect, endRect, edgeTypesFromMask);
+
+				if (path.Count == 0)
+				{
+					//no path found
+					return path;
+				}
+
 				//copy & remove the first/last nodes
 				List<Position> cachePath = new List<Position>(path);
 				cachePath.RemoveAt(0);
@@ -322,6 +329,10 @@ namespace RectifyUtils
 			{
 				rn.PathCost += (endPos - rn.EntryPointOffset).Magnitude;
 			}
+
+			//No path found
+			if (finalNodes.Count() == 0) return new List<Position>();
+
 			RectifyNode shortestNode = finalNodes.OrderBy(o => o.PathCost).First();
 			RectifyNode startNode = visitedNodes.Where(n => n.NodeRect == startRect).First();
 			//path is endPos + finalNode's entry pos, -> prev Node.entry pos ->... ... firstNode.entryPos (which is startPos)
