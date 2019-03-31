@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace RectifyUtils
@@ -112,6 +113,19 @@ namespace RectifyUtils
 			}
 		}
 
+		protected class NodeEdge
+		{
+			public Position Position { get; set; }
+			public Direction Direction { get; set; }
+
+			public NodeEdge(Position p, Direction d)
+			{
+				this.Position = p;
+				this.Direction = d;
+			}
+
+		}
+
 		protected class RectifyNode
 		{
 
@@ -123,17 +137,58 @@ namespace RectifyUtils
 			}
 
 			public int PathCost { get; set; }
+			public int ManhattenFromGoal { get; set; }
 
 			public RectifyNode PrevNode { get; set; }
-			//the position on the PrevNode we entered from
-			public Position EntryPoint { get; set; }
+
+			/// <summary>
+			/// the tile on the PrevNode we entered into
+			/// </summary>
+			public NodeEdge EntryPoint { get; set; }
+
+			/// <summary>
+			/// the tile on the PrevNode we entered from
+			/// </summary>
+			public Position EntryPointOffset
+			{
+				get
+				{
+					Position offset = null;
+					switch (EntryPoint.Direction)
+					{
+						case Direction.North:
+							offset = new Position(0, -1);
+							break;
+						case Direction.East:
+							offset = new Position(-1, 0);
+							break;
+						case Direction.West:
+							offset = new Position(1, 0);
+							break;
+						case Direction.South:
+							offset = new Position(0, 1);
+							break;
+						case Direction.Unknown:
+							offset = new Position(0, 0);
+							break;
+					}
+
+					return offset + EntryPoint.Position;
+				}
+			}
 
 			//when determining equality (for lists / hashsets), all we care about
 			//is whether or not the two Rectangles the nodes were made from
 			//are the same reference
-			public bool Equals(RectifyNode obj)
+			public override bool Equals(object obj)
 			{
-				return NodeRect.Equals(obj.NodeRect);
+				if (obj is RectifyNode == false) return false;
+				return this.NodeRect.Equals((obj as RectifyNode).NodeRect) && this.EntryPoint.Position.Equals((obj as RectifyNode).EntryPoint.Position);
+			}
+
+			public override int GetHashCode()
+			{
+				return this.NodeRect.GetHashCode() ^ this.EntryPoint.Position.GetHashCode();
 			}
 		}
 
@@ -196,13 +251,22 @@ namespace RectifyUtils
 			else
 			{
 				//calculate the whole path
-				return GetPathBetweenRectangles(startPosition, endPosition, startRect, endRect, edgeTypesFromMask);
+				List<Position> path = GetPathBetweenRectangles(startPosition, endPosition, startRect, endRect, edgeTypesFromMask);
+				//copy & remove the first/last nodes
+				List<Position> cachePath = new List<Position>(path);
+				cachePath.RemoveAt(0);
+				cachePath.RemoveAt(cachePath.Count - 1);
+
+				//cache
+				pathCache.Insert(0, new PathQuery(startRect, endRect, edgeTypesFromMask, cachePath));
+
+				return path;
 			}
 
 		}
 
 		/// <summary>
-		/// Uses a depth-first search to find the optimum path between the two rectangles, given the 
+		/// Uses a depth-first search to find the optimum path between the two rectangles
 		/// </summary>
 		/// <param name="startRect"></param>
 		/// <param name="endRect"></param>
@@ -210,17 +274,77 @@ namespace RectifyUtils
 		/// <returns></returns>
 		private List<Position> GetPathBetweenRectangles(Position startPos, Position endPos, RectifyRectangle startRect, RectifyRectangle endRect, HashSet<EdgeType> edgeTypesFromMask)
 		{
-			List<RectifyNode> unvisitedNodes = new List<RectifyNode>() { new RectifyNode(startRect) { EntryPoint = startPos } };
+			List<RectifyNode> frontier = new List<RectifyNode>() { new RectifyNode(startRect) { EntryPoint = new NodeEdge(startPos, Direction.Unknown) } };
 			HashSet<RectifyNode> visitedNodes = new HashSet<RectifyNode>();
 
-			while (unvisitedNodes.Count > 0)
+			while (frontier.Count > 0)
 			{
-				RectifyNode currentNode = unvisitedNodes[0];
+				RectifyNode currentNode = frontier.First();
+				frontier.Remove(currentNode);
+				visitedNodes.Add(currentNode);
+
 				//step 1 - get all neighbors who match at least one of the edgeTypes allowed
-				List<RectifyNode> neighbors = GetValidNeighbors(currentNode.NodeRect, startPos, edgeTypesFromMask);
+				List<RectifyNode> neighbors = GetValidNeighbors(currentNode.NodeRect, currentNode.EntryPoint, edgeTypesFromMask);
+				//step 2 - calculate costs to reach each neighbor.
+				foreach (var node in neighbors)
+				{
+					//// this would be used only when finding early-out path
+					//node.ManhattenFromGoal = node.NodeRect.MinDistanceFrom(endPos);
+
+					int pathCostDelta = (currentNode.EntryPoint.Position - node.EntryPointOffset).Magnitude + 1; //+1 for crossing between rectangles.
+																												 //look up if we already have this neighbor in our visitedNodes
+					if (visitedNodes.Contains(node))
+					{
+						//update the pathCost / previous IFF this pathCostDelta + currentNode's pathCost is lower than previous
+						var ogNode = visitedNodes.Where(n => n.Equals(node)).First();
+						if (ogNode.PathCost > currentNode.PathCost + pathCostDelta)
+						{
+							//this new route is faster
+							ogNode.PathCost = currentNode.PathCost + pathCostDelta;
+							ogNode.PrevNode = currentNode;
+							ogNode.EntryPoint = node.EntryPoint;
+						}
+					}
+					else
+					{
+						//add this to the frontier, and set the pathCost
+						node.PathCost = currentNode.PathCost + pathCostDelta;
+						node.PrevNode = currentNode;
+						frontier.Add(node);
+					}
+				}
 			}
 
-			throw new NotImplementedException();
+			//at this point, we've exhausted the frontier. Find the node with the endRect and reverse construct the path
+			IEnumerable<RectifyNode> finalNodes = visitedNodes.Where(n => n.NodeRect == endRect);
+			//add the startPos -> endPos to the last node for final distance
+			foreach (var rn in finalNodes)
+			{
+				rn.PathCost += (endPos - rn.EntryPointOffset).Magnitude;
+			}
+			RectifyNode shortestNode = finalNodes.OrderBy(o => o.PathCost).First();
+			RectifyNode startNode = visitedNodes.Where(n => n.NodeRect == startRect).First();
+			//path is endPos + finalNode's entry pos, -> prev Node.entry pos ->... ... firstNode.entryPos (which is startPos)
+
+			List<Position> reversePath = new List<Position>();
+			RectifyNode iterNode = shortestNode;
+			while (iterNode.PrevNode != startNode)
+			{
+				reversePath.Add(iterNode.EntryPoint.Position);
+				reversePath.Add(iterNode.EntryPointOffset);
+				iterNode = iterNode.PrevNode;
+			}
+			reversePath.Add(iterNode.EntryPoint.Position);
+			reversePath.Add(iterNode.EntryPointOffset);
+
+			reversePath.Reverse();
+
+			reversePath.Insert(0, startPos);
+			reversePath.Add(endPos);
+
+			var finalPath = reversePath.Distinct();
+
+			return finalPath.ToList();
 
 		}
 
@@ -231,10 +355,101 @@ namespace RectifyUtils
 		/// <param name="nodeRect"></param>
 		/// <param name="edgeTypesFromMask"></param>
 		/// <returns></returns>
-		private List<RectifyNode> GetValidNeighbors(RectifyRectangle nodeRect, Position startPos, HashSet<EdgeType> edgeTypesFromMask)
+		private List<RectifyNode> GetValidNeighbors(RectifyRectangle nodeRect, NodeEdge startPos, HashSet<EdgeType> edgeTypesFromMask)
 		{
+			Dictionary<RectifyRectangle, List<NodeEdge>> neighborDict = new Dictionary<RectifyRectangle, List<NodeEdge>>();
 
-			having trouble concentrating.
+			//left && right
+			for (int i = 0; i < nodeRect.Height; i++)
+			{
+				RectNeighbor left = nodeRect.LeftEdge[i];
+
+				if (left.Neighbor != null && edgeTypesFromMask.Contains(left.EdgeType))
+				{
+					if (neighborDict.ContainsKey(left.Neighbor))
+					{
+						//add this position to the neighbor's position list
+						neighborDict[left.Neighbor].Add(new NodeEdge(new Position(nodeRect.Left, nodeRect.Bottom + i), Direction.West));
+					}
+					else
+					{
+						//add this neighbor to the list 
+						List<NodeEdge> firstPosition = new List<NodeEdge>() { new NodeEdge(new Position(nodeRect.Left, nodeRect.Bottom + i), Direction.West) };
+						neighborDict[left.Neighbor] = firstPosition;
+					}
+				}
+
+				RectNeighbor right = nodeRect.RightEdge[i];
+
+				if (right.Neighbor != null && edgeTypesFromMask.Contains(right.EdgeType))
+				{
+					if (neighborDict.ContainsKey(right.Neighbor))
+					{
+						//add this position to the neighbor's position list
+						neighborDict[right.Neighbor].Add(new NodeEdge(new Position(nodeRect.Right, nodeRect.Bottom + i), Direction.East));
+					}
+					else
+					{
+						//add this neighbor to the list 
+						List<NodeEdge> firstPosition = new List<NodeEdge>() { new NodeEdge(new Position(nodeRect.Right, nodeRect.Bottom + i), Direction.East) };
+						neighborDict[right.Neighbor] = firstPosition;
+					}
+				}
+			}
+			//top & bot
+			for (int i = 0; i < nodeRect.Width; i++)
+			{
+				RectNeighbor top = nodeRect.TopEdge[i];
+
+				if (top.Neighbor != null && edgeTypesFromMask.Contains(top.EdgeType))
+				{
+					if (neighborDict.ContainsKey(top.Neighbor))
+					{
+						//add this position to the neighbor's position list
+						neighborDict[top.Neighbor].Add(new NodeEdge(new Position(nodeRect.Left + i, nodeRect.Top), Direction.North));
+					}
+					else
+					{
+						//add this neighbor to the list 
+						List<NodeEdge> firstPosition = new List<NodeEdge>() { new NodeEdge(new Position(nodeRect.Left + i, nodeRect.Top), Direction.North) };
+						neighborDict[top.Neighbor] = firstPosition;
+					}
+				}
+
+				RectNeighbor bottom = nodeRect.BottomEdge[i];
+
+				if (bottom.Neighbor != null && edgeTypesFromMask.Contains(bottom.EdgeType))
+				{
+					if (neighborDict.ContainsKey(bottom.Neighbor))
+					{
+						//add this position to the neighbor's position list
+						neighborDict[bottom.Neighbor].Add(new NodeEdge(new Position(nodeRect.Left + i, nodeRect.Bottom), Direction.South));
+					}
+					else
+					{
+						//add this neighbor to the list 
+						List<NodeEdge> firstPosition = new List<NodeEdge>() { new NodeEdge(new Position(nodeRect.Left + i, nodeRect.Bottom), Direction.South) };
+						neighborDict[bottom.Neighbor] = firstPosition;
+					}
+				}
+			}
+
+			List<RectifyNode> outList = new List<RectifyNode>();
+
+			//have all of the neighbors, now turn them into nodes
+			foreach (var neighborPair in neighborDict)
+			{
+				//find position w/ shortest magnitude from startPosition
+
+				var shortestEntrance = neighborPair.Value.OrderBy(p => (p.Position - startPos.Position).Magnitude).First();
+
+				outList.Add(new RectifyNode(neighborPair.Key)
+				{
+					EntryPoint = shortestEntrance
+				});
+			}
+
+			return outList;
 		}
 
 		private RectifyRectangle FindRectangleAroundPoint(Position position)

@@ -30,6 +30,7 @@ namespace RectifyUtils
 		South = 1,
 		West = 2,
 		North = 3, //Potential TODO: make these 1,2,4,8, once it stops breaking the tests and add "Unknown - 0" ?
+		Unknown = -1,
 	}
 
 	public class DirectionVector
@@ -312,6 +313,19 @@ namespace RectifyUtils
 		}
 	}
 
+
+	public class RectNeighbor
+	{
+		public RectifyRectangle Neighbor { get; set; }
+		public EdgeType EdgeType { get; set; }
+
+		public RectNeighbor(RectifyRectangle neighbor, EdgeType edgeType)
+		{
+			this.Neighbor = neighbor;
+			this.EdgeType = edgeType;
+		}
+	}
+
 	/// <summary>
 	/// Represents a rectangle (4 vertices), a perimeter of edges, a list of which rectangles
 	/// this rectangle neighbors, and which edges allow connections to those neighbors
@@ -325,17 +339,7 @@ namespace RectifyUtils
 		//	public int HighRangeCoordinate { get; set; }
 		//}
 
-		public class RectNeighbor
-		{
-			public RectifyRectangle Neighbor { get; set; }
-			public EdgeType EdgeType { get; set; }
 
-			public RectNeighbor(RectifyRectangle neighbor, EdgeType edgeType)
-			{
-				this.Neighbor = neighbor;
-				this.EdgeType = edgeType;
-			}
-		}
 
 		internal RectNeighbor[] LeftEdge;
 		internal RectNeighbor[] RightEdge;
@@ -419,14 +423,14 @@ namespace RectifyUtils
 
 			//get all the edges w/ firstPosition x == topLeft.x && secondPosition x == topLeft.x
 			LeftEdge = new RectNeighbor[this.Height];
-			var workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.xPos == topLeft.xPos && e.SecondPosition.xPos == topLeft.xPos).OrderBy(e => e.SecondPosition.yPos).ToArray();
+			var workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.North).OrderBy(e => e.SecondPosition.yPos).ToArray();
 			for (int i = 0; i < workingEdges.Count(); i++)
 			{
 				LeftEdge[i] = new RectNeighbor(null, workingEdges[i].EdgeType);
 			}
 
 			RightEdge = new RectNeighbor[this.Height];
-			workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.xPos == bottomRight.xPos && e.SecondPosition.xPos == bottomRight.xPos).OrderBy(e => e.FirstPosition.yPos).ToArray();
+			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.South).OrderBy(e => e.FirstPosition.yPos).ToArray();
 			for (int i = 0; i < workingEdges.Count(); i++)
 			{
 				RightEdge[i] = new RectNeighbor(null, workingEdges[i].EdgeType);
@@ -434,14 +438,14 @@ namespace RectifyUtils
 
 			//get all the edges w/ firstPosition y == topLeft.y && secondPosition y == topLeft.y
 			TopEdge = new RectNeighbor[this.Width];
-			workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.yPos == topLeft.yPos && e.SecondPosition.yPos == topLeft.yPos).OrderBy(e => e.FirstPosition.xPos).ToArray();
+			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.West).OrderBy(e => e.FirstPosition.xPos).ToArray();
 			for (int i = 0; i < workingEdges.Count(); i++)
 			{
 				TopEdge[i] = new RectNeighbor(null, workingEdges[i].EdgeType);
 			}
 
 			BottomEdge = new RectNeighbor[this.Width];
-			workingEdges = shape.Perimeter.FindAll(e => e.FirstPosition.yPos == bottomRight.yPos && e.SecondPosition.yPos == bottomRight.yPos).OrderBy(e => e.SecondPosition.xPos).ToArray();
+			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.East).OrderBy(e => e.SecondPosition.xPos).ToArray();
 			for (int i = 0; i < workingEdges.Count(); i++)
 			{
 				BottomEdge[i] = new RectNeighbor(null, workingEdges[i].EdgeType);
@@ -622,7 +626,7 @@ namespace RectifyUtils
 
 		internal bool ContainsPoint(Position position)
 		{
-			if (position.xPos < this.Right && position.xPos > this.Left && position.yPos < this.Top && position.yPos > this.Bottom) return true;
+			if (position.xPos < this.Right && position.xPos >= this.Left && position.yPos < this.Top && position.yPos >= this.Bottom) return true;
 
 			return false;
 		}

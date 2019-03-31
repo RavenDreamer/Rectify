@@ -2013,7 +2013,7 @@ namespace RectifyUtils
 			}
 			//now duplicate the second incision
 
-			var eastSecondIncision = new RectEdge(new Position(secondIncision.FirstPosition), new Position(secondIncision.SecondPosition), EdgeType.None);
+			var eastSecondIncision = new RectEdge(new Position(secondIncision.FirstPosition), new Position(secondIncision.SecondPosition), secondIncision.EdgeType);
 			workingEdge.Next = eastSecondIncision;
 			edges.Add(eastSecondIncision);
 
