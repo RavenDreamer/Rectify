@@ -8,4 +8,10 @@
     <DefineConstants>TRACE;debug</DefineConstants>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="Priority Queue">
+      <HintPath>..\..\..\High-Speed-Priority-Queue-for-C-Sharp\Priority Queue\bin\Debug\Priority Queue.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

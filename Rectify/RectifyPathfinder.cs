@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Priority_Queue;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -235,7 +236,7 @@ namespace RectifyUtils
 			if (pathCache.Contains(cacheQuery))
 			{
 				//return cached path w/ current start / end position
-				PathQuery cacheResult = pathCache.Find(pq => pq.startRect == cacheQuery.startRect && pq.endRect == cacheQuery.endRect && pq.pathEdges == cacheQuery.pathEdges);
+				PathQuery cacheResult = pathCache.Find(pq => pq.startRect.Equals(cacheQuery.startRect) && pq.endRect.Equals(cacheQuery.endRect) && pq.pathEdges.Intersect(cacheQuery.pathEdges).Count() == pq.pathEdges.Count);
 				//move cached path to the top of the list;
 				pathCache.Remove(cacheResult);
 				pathCache.Insert(0, cacheResult);
@@ -281,13 +282,16 @@ namespace RectifyUtils
 		/// <returns></returns>
 		private List<Position> GetPathBetweenRectangles(Position startPos, Position endPos, RectifyRectangle startRect, RectifyRectangle endRect, HashSet<EdgeType> edgeTypesFromMask)
 		{
-			List<RectifyNode> frontier = new List<RectifyNode>() { new RectifyNode(startRect) { EntryPoint = new NodeEdge(startPos, Direction.Unknown) } };
-			HashSet<RectifyNode> visitedNodes = new HashSet<RectifyNode>();
+			SimplePriorityQueue<RectifyNode> frontier = new SimplePriorityQueue<RectifyNode>();
+			frontier.Enqueue(new RectifyNode(startRect) { EntryPoint = new NodeEdge(startPos, Direction.Unknown) }, 0);
 
-			while (frontier.Count > 0)
+			HashSet<RectifyNode> visitedNodes = new HashSet<RectifyNode>();
+			bool earlyOut = false;
+
+
+			while (frontier.Count > 0 && earlyOut == false)
 			{
-				RectifyNode currentNode = frontier.First();
-				frontier.Remove(currentNode);
+				RectifyNode currentNode = frontier.Dequeue();
 				visitedNodes.Add(currentNode);
 
 				//step 1 - get all neighbors who match at least one of the edgeTypes allowed
@@ -295,11 +299,19 @@ namespace RectifyUtils
 				//step 2 - calculate costs to reach each neighbor.
 				foreach (var node in neighbors)
 				{
-					//// this would be used only when finding early-out path
-					//node.ManhattenFromGoal = node.NodeRect.MinDistanceFrom(endPos);
-
 					int pathCostDelta = (currentNode.EntryPoint.Position - node.EntryPointOffset).Magnitude + 1; //+1 for crossing between rectangles.
 																												 //look up if we already have this neighbor in our visitedNodes
+
+					//// this would be used only when finding early-out path
+					if (node.NodeRect.Equals(endRect))
+					{
+						earlyOut = true;
+						node.PathCost = currentNode.PathCost + pathCostDelta;
+						node.PrevNode = currentNode;
+						visitedNodes.Add(node);
+					}
+
+
 					if (visitedNodes.Contains(node))
 					{
 						//update the pathCost / previous IFF this pathCostDelta + currentNode's pathCost is lower than previous
@@ -317,7 +329,8 @@ namespace RectifyUtils
 						//add this to the frontier, and set the pathCost
 						node.PathCost = currentNode.PathCost + pathCostDelta;
 						node.PrevNode = currentNode;
-						frontier.Add(node);
+
+						frontier.Enqueue(node, node.NodeRect.MinDistanceFrom(endPos));
 					}
 				}
 			}

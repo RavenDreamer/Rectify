@@ -47,5 +47,18 @@ namespace RectifyTest
 			var resultPath = pathfinder.CalculatePath(new Position(0, 1), new Position(3, 1), (int)EdgeType.None);
 			Assert.AreEqual(0, resultPath.Count, "Didn't fail to find a path as expected");
 		}
+
+		[TestMethod]
+		[TestCategory("Pathfinder")]
+		public void UnitySlownessTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans());
+
+			var pathfinder = new RectifyPathfinder(result);
+
+			var resultPath = pathfinder.CalculatePath(new Position(119, 101), new Position(149, 79));
+			resultPath = pathfinder.CalculatePath(new Position(119, 99), new Position(150, 63));
+			Assert.AreEqual(4, resultPath.Count, "fail to find a path as expected");
+		}
 	}
 }
