@@ -13,7 +13,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void FunctionalAndImperativeAreEquivalentTest()
 		{
-			var impResult = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
+			var impResult = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles(), new List<RectDetectPair>());
 
 			var funcResult = Rectify.GetRectNodesFunctional(TestData.BinaryConcaveShapeNoHoles());
 
@@ -32,7 +32,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void BinaryConcaveShapeNoHolesMakeRectNodesTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
+			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles(), new List<RectDetectPair>());
 
 			Assert.AreEqual(12, result.GetLength(0), "width not dimension 0");
 			Assert.AreEqual(17, result.GetLength(1), "height not dimension 1");
@@ -77,7 +77,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void BinaryConcaveShapeNoHolesTraverseShapesTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
+			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 
 			Assert.AreEqual(4, output.Count, "Did not traverse 4 shapes as expected");
@@ -95,7 +95,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void BinaryConcaveShapeNoHolesMakePolygonsTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
+			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -114,7 +114,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void BinaryConcaveShapeNoHolesPickChordsTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
+			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -166,7 +166,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void SquareWithSquareHolePickChordsTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.SquareWithSquareHole());
+			var result = Rectify.GetRectNodes(TestData.SquareWithSquareHole(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -260,7 +260,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void SquareWithTwoSquareHolesPickChordsTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.SquareWithTwoSquareHole());
+			var result = Rectify.GetRectNodes(TestData.SquareWithTwoSquareHole(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -354,7 +354,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void SquareWithCogridHolesPickChordsTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.SquareWithCogridHoles());
+			var result = Rectify.GetRectNodes(TestData.SquareWithCogridHoles(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -448,7 +448,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void OneDRectangleVertexTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.OneDRectangleTest());
+			var result = Rectify.GetRectNodes(TestData.OneDRectangleTest(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -542,7 +542,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void HoleSelfCutTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.SquareWithSelfHoleCut());
+			var result = Rectify.GetRectNodes(TestData.SquareWithSelfHoleCut(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -558,7 +558,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void HoleSelfCutWithCogridCompanionTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.SelfHoleCutWithCogridSide());
+			var result = Rectify.GetRectNodes(TestData.SelfHoleCutWithCogridSide(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -573,7 +573,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void DisjointHatTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.DisjointHat());
+			var result = Rectify.GetRectNodes(TestData.DisjointHat(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -589,7 +589,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void MetoriteSiteTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.MeteorStrike());
+			var result = Rectify.GetRectNodes(TestData.MeteorStrike(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -735,7 +735,7 @@ namespace RectifyTest
 		public void RoomHolesTest()
 		{
 
-			var result = Rectify.GetRectNodes(TestData.RoomHoles());
+			var result = Rectify.GetRectNodes(TestData.RoomHoles(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 
 			Assert.AreEqual(2, output[0].Holes.Count, "Did not get 2 holes as expected");
@@ -746,7 +746,7 @@ namespace RectifyTest
 		{
 
 
-			var result = Rectify.GetRectNodes(TestData.ExcisedHoleIsland());
+			var result = Rectify.GetRectNodes(TestData.ExcisedHoleIsland(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 
@@ -803,7 +803,7 @@ namespace RectifyTest
 		[TestMethod]
 		public void BinaryConcaveShapeNoHolesSecondLevelDecompTest()
 		{
-			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles());
+			var result = Rectify.GetRectNodes(TestData.BinaryConcaveShapeNoHoles(), new List<RectDetectPair>());
 			var output = Rectify.TraverseShapeOutlines(result);
 			var polygons = Rectify.FindVertsFromEdges(output);
 

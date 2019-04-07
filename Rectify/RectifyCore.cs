@@ -8,15 +8,13 @@ namespace RectifyUtils
 {
 	public class Rectify
 	{
-
-
 		/// <summary>
 		/// Iterate over the entries in the array. For each entry, compare with neighbors
 		/// to create an array of RectNodes for futher processing. Data in [height, width] 
 		/// format to support passing data via instantiated arrays (see TestData)
 		/// </summary>
 		/// <param name="data"></param>
-		public static RectNode[,] GetRectNodes(int[,] data, Position targetminXY = null, Position targetmaxXY = null)
+		public static RectNode[,] GetRectNodes(int[,] data, List<RectDetectPair> edgeOverrides, Position targetminXY = null, Position targetmaxXY = null)
 		{
 			int maxWidth = data.GetLength(1);
 			int maxHeight = data.GetLength(0);
@@ -65,7 +63,17 @@ namespace RectifyUtils
 					}
 					else
 					{
-						rNode.Edges.West = EdgeType.Wall;
+						bool wasOverriden = false;
+						foreach (var detector in edgeOverrides)
+						{
+							if (w > lowX && detector.MatchesEdge(data[h, w - 1], dataCell))
+							{
+								//override with detector's edge type
+								rNode.Edges.West = detector.EdgeType;
+							}
+						}
+
+						if (wasOverriden == false) rNode.Edges.West = EdgeType.Wall;
 					}
 
 					//East; if we're in-bounds and the eastPeek is the same value, no wall
@@ -75,7 +83,17 @@ namespace RectifyUtils
 					}
 					else
 					{
-						rNode.Edges.East = EdgeType.Wall;
+						bool wasOverriden = false;
+						foreach (var detector in edgeOverrides)
+						{
+							if (w < highX - 1 && detector.MatchesEdge(data[h, w + 1], dataCell))
+							{
+								//override with detector's edge type
+								rNode.Edges.East = detector.EdgeType;
+							}
+						}
+
+						if (wasOverriden == false) rNode.Edges.East = EdgeType.Wall;
 					}
 
 					//South; if we're in-bounds and the southPeek is the same value, no wall
@@ -86,7 +104,17 @@ namespace RectifyUtils
 					}
 					else
 					{
-						rNode.Edges.South = EdgeType.Wall;
+						bool wasOverriden = false;
+						foreach (var detector in edgeOverrides)
+						{
+							if (h < highY - 1 && detector.MatchesEdge(data[h + 1, w], dataCell))
+							{
+								//override with detector's edge type
+								rNode.Edges.South = detector.EdgeType;
+							}
+						}
+
+						if (wasOverriden == false) rNode.Edges.South = EdgeType.Wall;
 					}
 
 					//North; if we're in-bounds and the northPeek is the same value, no wall
@@ -97,7 +125,17 @@ namespace RectifyUtils
 					}
 					else
 					{
-						rNode.Edges.North = EdgeType.Wall;
+						bool wasOverriden = false;
+						foreach (var detector in edgeOverrides)
+						{
+							if (h > lowY && detector.MatchesEdge(data[h - 1, w], dataCell))
+							{
+								//override with detector's edge type
+								rNode.Edges.North = detector.EdgeType;
+							}
+						}
+
+						if (wasOverriden == false) rNode.Edges.North = EdgeType.Wall;
 					}
 
 					//this will translate the width x height into a top-left Quadrant II type grid
@@ -362,9 +400,12 @@ namespace RectifyUtils
 			};
 		}
 
-		public static List<RectifyRectangle> MakeRectangles(int[,] v, Position minXY = null, Position maxXY = null)
+		public static List<RectifyRectangle> MakeRectangles(int[,] v, Position minXY = null, Position maxXY = null, List<RectDetectPair> edgeOverrides = null)
 		{
-			var result = GetRectNodes(v, minXY, maxXY);
+
+			if (edgeOverrides == null) edgeOverrides = new List<RectDetectPair>();
+
+			var result = GetRectNodes(v, edgeOverrides, minXY, maxXY);
 			var output = TraverseShapeOutlines(result);
 			var polygons = FindVertsFromEdges(output);
 

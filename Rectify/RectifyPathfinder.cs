@@ -193,6 +193,8 @@ namespace RectifyUtils
 			}
 		}
 
+
+
 		private List<RectifyRectangle> RectNodes { get; set; }
 		private readonly List<PathQuery> pathCache = new List<PathQuery>();
 		private readonly int pathCacheSize = 0;
@@ -201,6 +203,25 @@ namespace RectifyUtils
 		{
 			this.RectNodes = rectNodes;
 			this.pathCacheSize = pathCacheSize;
+		}
+
+
+		/// <summary>
+		/// Returns the topleft & bottomright positions of the rectify rect that encapsulates this point.
+		/// </summary>
+		/// <param name="p"></param>
+		/// <returns></returns>
+		public Tuple<Position, Position> GetRectBordersFromPoint(Position p)
+		{
+			foreach (RectifyRectangle rr in RectNodes)
+			{
+				if (rr.ContainsPoint(p, .5f))
+				{
+					return new Tuple<Position, Position>(new Position(rr.Left, rr.Top), new Position(rr.Right, rr.Bottom));
+				}
+			}
+
+			return null;
 		}
 
 		/// <summary>
@@ -251,6 +272,13 @@ namespace RectifyUtils
 			}
 			else
 			{
+				//determine reachability (
+				if (GetRecursiveNeighbors(startRect, endRect, edgeTypesFromMask) == false)
+				{
+					//destination not reachable.
+					return new List<Position>();
+				}
+
 				//calculate the whole path
 				List<Position> path = GetPathBetweenRectangles(startPosition, endPosition, startRect, endRect, edgeTypesFromMask);
 
@@ -271,6 +299,89 @@ namespace RectifyUtils
 				return path;
 			}
 
+		}
+
+		/// <summary>
+		/// For the set of all rectangles, is endRect reachable from startRect?
+		/// </summary>
+		/// <param name="startRect"></param>
+		/// <param name="endRect"></param>
+		/// <param name="edgeTypesFromMask"></param>
+		/// <returns></returns>
+		private bool GetRecursiveNeighbors(RectifyRectangle startRect, RectifyRectangle endRect, HashSet<EdgeType> edgeTypesFromMask)
+		{
+			HashSet<RectifyRectangle> foundNeighbors = new HashSet<RectifyRectangle>() { startRect };
+			List<RectifyRectangle> neighborsToAdd = new List<RectifyRectangle>(GetNeighborsSimple(startRect, edgeTypesFromMask));
+
+			while (neighborsToAdd.Count > 0)
+			{
+				var workingNeighbor = neighborsToAdd[0];
+				neighborsToAdd.RemoveAt(0);
+				foundNeighbors.Add(workingNeighbor);
+
+				var neighborNeighbors = GetNeighborsSimple(workingNeighbor, edgeTypesFromMask);
+
+				foreach (RectifyRectangle rr in neighborNeighbors)
+				{
+
+					if (rr == endRect) return true;
+
+					if (foundNeighbors.Contains(rr))
+					{
+						//do nothing, already looked at
+					}
+					else
+					{
+						neighborsToAdd.Add(rr);
+					}
+				}
+			}
+
+			return false;
+
+
+		}
+
+		private HashSet<RectifyRectangle> GetNeighborsSimple(RectifyRectangle rect, HashSet<EdgeType> edgeTypesFromMask)
+		{
+			HashSet<RectifyRectangle> uniqueNeighbors = new HashSet<RectifyRectangle>();
+
+			//left && right
+			foreach (var n in rect.LeftEdge)
+			{
+				if (edgeTypesFromMask.Contains(n.EdgeType))
+				{
+					uniqueNeighbors.Add(n.Neighbor);
+				}
+			}
+
+			foreach (var n in rect.RightEdge)
+			{
+				if (edgeTypesFromMask.Contains(n.EdgeType))
+				{
+					uniqueNeighbors.Add(n.Neighbor);
+				}
+			}
+
+			foreach (var n in rect.TopEdge)
+			{
+				if (edgeTypesFromMask.Contains(n.EdgeType))
+				{
+					uniqueNeighbors.Add(n.Neighbor);
+				}
+			}
+
+			foreach (var n in rect.BottomEdge)
+			{
+				if (edgeTypesFromMask.Contains(n.EdgeType))
+				{
+					uniqueNeighbors.Add(n.Neighbor);
+				}
+			}
+
+			uniqueNeighbors.Remove(null);
+
+			return uniqueNeighbors;
 		}
 
 		/// <summary>
@@ -480,7 +591,7 @@ namespace RectifyUtils
 		{
 			foreach (RectifyRectangle rr in RectNodes)
 			{
-				if (rr.ContainsPoint(position)) return rr;
+				if (rr.ContainsPoint(position, .5f)) return rr;
 			}
 
 			throw new PathOutOfBoundsException("Position: " + position.ToString() + "was not within this pathfinder's rect nodes");

@@ -33,6 +33,27 @@ namespace RectifyUtils
 		Unknown = -1,
 	}
 
+	/// <summary>
+	/// When iterating over int-based data, use this to override the default "EdgeType.Wall" designation
+	/// </summary>
+	public class RectDetectPair
+	{
+		public EdgeType EdgeType { get; private set; }
+		HashSet<int> detector = new HashSet<int>();
+
+		public RectDetectPair(int first, int second, EdgeType edgeOverride)
+		{
+			detector.Add(first);
+			detector.Add(second);
+			this.EdgeType = edgeOverride;
+		}
+
+		public bool MatchesEdge(int first, int second)
+		{
+			return detector.Contains(first) && detector.Contains(second);
+		}
+	}
+
 	public class DirectionVector
 	{
 		public Direction Direction { get; set; }
@@ -624,9 +645,16 @@ namespace RectifyUtils
 			return (int)Math.Sqrt(((p.xPos - other.xPos) * (p.xPos - other.xPos)) + ((p.yPos - other.yPos) * (p.yPos - other.yPos)));
 		}
 
-		internal bool ContainsPoint(Position position)
+		//internal bool ContainsPoint(Position position)
+		//{
+		//	if (position.xPos < this.Right && position.xPos >= this.Left && position.yPos < this.Top && position.yPos >= this.Bottom) return true;
+
+		//	return false;
+		//}
+
+		internal bool ContainsPoint(Position position, float positiveOffset)
 		{
-			if (position.xPos < this.Right && position.xPos >= this.Left && position.yPos < this.Top && position.yPos >= this.Bottom) return true;
+			if ((position.xPos + positiveOffset) < this.Right && (position.xPos + positiveOffset) >= this.Left && (position.yPos + positiveOffset) < this.Top && (position.yPos + positiveOffset) >= this.Bottom) return true;
 
 			return false;
 		}

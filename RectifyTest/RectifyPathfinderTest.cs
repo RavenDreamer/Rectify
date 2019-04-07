@@ -17,10 +17,10 @@ namespace RectifyTest
 
 			var pathfinder = new RectifyPathfinder(result);
 
-			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(7, 0), (int)EdgeType.None);
+			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(6, 0), (int)EdgeType.None);
 			Assert.AreEqual(5, resultPath.Count, "Didn't find straight-line path as expected");
 
-			resultPath = pathfinder.CalculatePath(new Position(0, 3), new Position(7, 0), (int)EdgeType.None);
+			resultPath = pathfinder.CalculatePath(new Position(0, 3), new Position(6, 0), (int)EdgeType.None);
 			Assert.AreEqual(4, resultPath.Count, "Didn't find 4-length path as expected");
 		}
 
@@ -52,7 +52,13 @@ namespace RectifyTest
 		[TestCategory("Pathfinder")]
 		public void UnitySlownessTest()
 		{
-			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans());
+
+			List<RectDetectPair> edges = new List<RectDetectPair>();
+			edges.Add(new RectDetectPair(0, 3, EdgeType.Aperture));
+
+
+
+			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), null, null, edges);
 
 			var pathfinder = new RectifyPathfinder(result);
 
