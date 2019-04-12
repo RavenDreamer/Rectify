@@ -630,14 +630,30 @@ namespace RectifyUtils
 				return 0;
 			}
 
-			List<int> distList = new List<int>(4);
-			distList.Add(DistanceBetween(p, topLeft));
-			distList.Add(DistanceBetween(p, new Position(topLeft.xPos, bottomRight.yPos)));
-			distList.Add(DistanceBetween(p, new Position(bottomRight.xPos, topLeft.yPos)));
-			distList.Add(DistanceBetween(p, bottomRight));
-			distList.Sort();
-			return distList.First();
 
+			int x = Clamp(p.xPos, Left, Right);
+			int y = Clamp(p.yPos, Top, Bottom);
+
+			int dl, dr, dt, db;
+			dl = Math.Abs(x - Left);
+			dr = Math.Abs(x - Right);
+			dt = Math.Abs(y - Top);
+			db = Math.Abs(y - Bottom);
+
+			int min = new List<int>() { dl, dr, dt, db }.Min();
+
+			if (min == dt) return (new Position(x, Top) - p).Magnitude;
+			if (min == db) return (new Position(x, Bottom) - p).Magnitude;
+			if (min == dl) return (new Position(Left, y) - p).Magnitude;
+
+			//else
+			return (new Position(Right, y) - p).Magnitude;
+
+		}
+
+		private int Clamp(int x, int lower, int upper)
+		{
+			return Math.Max(lower, Math.Min(upper, x));
 		}
 
 		private int DistanceBetween(Position p, Position other)
@@ -715,6 +731,8 @@ namespace RectifyUtils
 				return topLeft.yPos;
 			}
 		}
+
+		public int BaseCost { get; internal set; } = 1;
 	}
 
 

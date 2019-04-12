@@ -306,6 +306,39 @@ namespace RectifyTest
 			};
 		}
 
+		public static int[,] SealedRoomTest()
+		{
+			return new int[,]
+			{
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,1,3,1,0,0,0 },
+				{ 0,0,1,0,1,0,0,0 },
+				{ 0,0,1,3,1,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 },
+				{ 0,0,0,0,0,0,0,0 }
+			};
+		}
+
+
+		public static int[,] LPathTest()
+		{
+			//start at 1,6, goal is 7,0
+			//length = 13 (or less)
+			return new int[,]
+			{
+				{ 0,0,0,0,0,1,0,0 },
+				{ 0,0,0,0,0,1,0,0 },
+				{ 0,0,0,0,0,3,0,0 },
+				{ 0,0,0,0,0,1,0,0 },
+				{ 0,0,0,1,1,1,1,1 },
+				{ 0,0,0,1,0,0,0,0 },
+				{ 0,0,0,1,0,0,0,0 },
+				{ 0,0,0,1,0,0,0,0 }
+			};
+		}
+
 		internal static Tuple<HashSet<RectEdgeEdge>, List<RectFlowNode>> GetAlternatingNodesMatching()
 		{
 			HashSet<RectEdgeEdge> edges = new HashSet<RectEdgeEdge>();

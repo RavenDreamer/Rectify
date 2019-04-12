@@ -70,6 +70,7 @@ namespace RectifyUtils
 							{
 								//override with detector's edge type
 								rNode.Edges.West = detector.EdgeType;
+								wasOverriden = true;
 							}
 						}
 
@@ -90,6 +91,7 @@ namespace RectifyUtils
 							{
 								//override with detector's edge type
 								rNode.Edges.East = detector.EdgeType;
+								wasOverriden = true;
 							}
 						}
 
@@ -111,6 +113,7 @@ namespace RectifyUtils
 							{
 								//override with detector's edge type
 								rNode.Edges.South = detector.EdgeType;
+								wasOverriden = true;
 							}
 						}
 
@@ -132,6 +135,7 @@ namespace RectifyUtils
 							{
 								//override with detector's edge type
 								rNode.Edges.North = detector.EdgeType;
+								wasOverriden = true;
 							}
 						}
 
