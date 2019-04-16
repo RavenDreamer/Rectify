@@ -18,10 +18,10 @@ namespace RectifyTest
 			var pathfinder = new RectifyPathfinder(result);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(6, 0), (int)EdgeType.None);
-			Assert.AreEqual(6, resultPath.Count, "Didn't find straight-line path as expected");
+			Assert.AreEqual(5, resultPath.Count, "Didn't find straight-line path as expected");
 
 			resultPath = pathfinder.CalculatePath(new Position(0, 3), new Position(6, 0), (int)EdgeType.None);
-			Assert.AreEqual(8, resultPath.Count, "Didn't find 8-length path as expected");
+			Assert.AreEqual(4, resultPath.Count, "Didn't find 8-length path as expected");
 		}
 
 		[TestMethod]
@@ -69,7 +69,7 @@ namespace RectifyTest
 
 			//throw new NotImplementedException("Need to figure out how to cache the RSR results");
 
-			Assert.AreEqual(90, resultPath.Count, "fail to find a path as expected");
+			Assert.AreEqual(52, resultPath.Count, "fail to find a path as expected");
 		}
 
 		[TestMethod]

@@ -510,22 +510,34 @@ namespace RectifyUtils
 			}
 			else
 			{
-				List<Position> reversePath = new List<Position>();
+				List<RectifyNode> reversePath = new List<RectifyNode>();
 				RectifyNode iterNode = goalNode;
 				while (iterNode != startNode)
 				{
-					reversePath.Add(iterNode.Position);
+					reversePath.Add(iterNode);
 					iterNode = iterNode.PrevNode;
 				}
 
 				//and finally add the start node.
-				reversePath.Add(startNode.Position);
+				reversePath.Add(startNode);
 
 				reversePath.Reverse();
 
-				return reversePath;
-			}
+				//TODO: Make this optional
+				//condense the paths if they're in the same node.
+				var groupedPaths = reversePath.GroupBy(n => n.NodeRect);
+				List<Position> finalPath = new List<Position>();
+				foreach (var rectPos in groupedPaths)
+				{
+					finalPath.Add(rectPos.First().Position);
+					if (rectPos.Count() > 1)
+					{
+						finalPath.Add(rectPos.Last().Position);
+					}
+				}
 
+				return finalPath;
+			}
 		}
 
 		/// <summary>
@@ -557,7 +569,7 @@ namespace RectifyUtils
 			//left
 			{
 				RectifyNode leftNode = null;
-				if (parent.Left < nodePos.xPos && (parent.Top == nodePos.yPos || parent.Bottom == nodePos.yPos))
+				if (parent.Left < nodePos.xPos && (parent.Top - 1 == nodePos.yPos || parent.Bottom == nodePos.yPos))
 				{
 					//return the adjacent node within this macro edge
 					//JPS implementation goes here, I think
@@ -589,7 +601,7 @@ namespace RectifyUtils
 			//right
 			{
 				RectifyNode rightNode = null;
-				if (parent.Right - 1 > nodePos.xPos && (parent.Top == nodePos.yPos || parent.Bottom == nodePos.yPos))
+				if (parent.Right - 1 > nodePos.xPos && (parent.Top - 1 == nodePos.yPos || parent.Bottom == nodePos.yPos))
 				{
 					//return the adjacent node within this macro edge
 					//JPS implementation goes here, I think
@@ -622,7 +634,7 @@ namespace RectifyUtils
 			//top
 			{
 				RectifyNode topNode = null;
-				if (parent.Top - 1 > nodePos.yPos && (parent.Left == nodePos.xPos || parent.Right == nodePos.xPos))
+				if (parent.Top - 1 > nodePos.yPos && (parent.Left == nodePos.xPos || parent.Right - 1 == nodePos.xPos))
 				{
 					//return the adjacent node within this macro edge
 					//JPS implementation goes here, I think
@@ -655,7 +667,7 @@ namespace RectifyUtils
 			//bottom
 			{
 				RectifyNode bottomNode = null;
-				if (parent.Bottom < nodePos.yPos && (parent.Left == nodePos.xPos || parent.Right == nodePos.xPos))
+				if (parent.Bottom < nodePos.yPos && (parent.Left == nodePos.xPos || parent.Right - 1 == nodePos.xPos))
 				{
 					//return the adjacent node within this macro edge
 					//JPS implementation goes here, I think
