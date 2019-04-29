@@ -8,7 +8,7 @@ Rectify is a pathfinding library designed for static or semi-static square tileg
 
 [How it Works -- Part 1: Rectangular Decomposition](https://github.com/RavenDreamer/Rectify/wiki/How-it-Works----Part-1:-Rectangular-Decomposition)
 
-[How it Works -- Part 2: Rectangular Symmetry Reduction](https://github.com/RavenDreamer/Rectify/wiki/How-it-Works----Prat-2:-Rectangular-Symmetry-Reduction)
+[How it Works -- Part 2: Rectangular Symmetry Reduction](https://github.com/RavenDreamer/Rectify/wiki/How-it-Works----Part-2:-Rectangular-Symmetry-Reduction)
 
 ### Should I use Rectify in my game or project? ###
 
