@@ -1,6 +1,6 @@
 ![Rectify](https://github.com/RavenDreamer/Rectify/blob/master/GitHub/logo.png "Rectify Logo")
 
-# A Rectangular Symmetry Reduction pathfinding implementation
+# An RSR pathfinding implementation
 
 ### Overview ###
 
