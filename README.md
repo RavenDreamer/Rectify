@@ -7,6 +7,7 @@
 Rectify is a pathfinding library designed for static or semi-static square tilegrids in 2d. It decomposes the problem space into a minimum number of linked rectangles, then uses that rectangular navmesh to calculate an optimal path using a techinque known as Rectangular Symmetry Reduction (RSR). The goal with Rectify was to remove the hassle associated with implementing pathfinding -- pass in your terrain data, provide a start and end position, and receive the shortest path between the two!
 
 [How it Works -- Part 1: Rectangular Decomposition](https://github.com/RavenDreamer/Rectify/wiki/How-it-Works----Part-1:-Rectangular-Decomposition)
+
 [How it Works -- Part 2: Rectangular Symmetry Reduction](https://github.com/RavenDreamer/Rectify/wiki/How-it-Works----Prat-2:-Rectangular-Symmetry-Reduction)
 
 ### Should I use Rectify in my game or project? ###
