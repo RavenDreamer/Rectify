@@ -14,7 +14,7 @@ namespace RectifyUtils
 		/// format to support passing data via instantiated arrays (see TestData)
 		/// </summary>
 		/// <param name="data"></param>
-		public static RectNode[,] GetRectNodes(int[,] data, List<RectDetectPair> edgeOverrides, Position targetminXY = null, Position targetmaxXY = null)
+		public static RectNode[,] GetRectNodes(int[,] data, DataLayout dataLayout, List<RectDetectPair> edgeOverrides = null, Position targetminXY = null, Position targetmaxXY = null)
 		{
 			int maxWidth = data.GetLength(1);
 			int maxHeight = data.GetLength(0);
@@ -45,6 +45,18 @@ namespace RectifyUtils
 				highY = targetmaxXY.yPos;
 			}
 
+			int[,] workingData;
+			if (dataLayout == DataLayout.CodeInitializedArray)
+			{
+				workingData = RectifyDataUtils.RotateAndSwapData(data);
+			}
+			else
+			{
+				workingData = data;
+			}
+
+			List<RectDetectPair> workingEdgeOverrides = edgeOverrides ?? new List<RectDetectPair>();
+
 			RectNode[,] output = new RectNode[highX - lowX, highY - lowY];
 
 			for (int h = lowY; h < highY; h++)
@@ -53,20 +65,20 @@ namespace RectifyUtils
 				{
 					//for each cell, look at its neighbors
 					//this isn't maximally efficient, but suffices for testing for now
-					int dataCell = data[h, w];
+					int dataCell = workingData[w, h];
 					RectNode rNode = new RectNode();
 
 					//west; if we're in-bounds and the westPeek is the same value, no wall
-					if (w > lowX && data[h, w - 1] == dataCell)
+					if (w > lowX && workingData[w - 1, h] == dataCell)
 					{
 						rNode.Edges.West = EdgeType.None;
 					}
 					else
 					{
 						bool wasOverriden = false;
-						foreach (var detector in edgeOverrides)
+						foreach (var detector in workingEdgeOverrides)
 						{
-							if (w > lowX && detector.MatchesEdge(data[h, w - 1], dataCell))
+							if (w > lowX && detector.MatchesEdge(workingData[w - 1, h], dataCell))
 							{
 								//override with detector's edge type
 								rNode.Edges.West = detector.EdgeType;
@@ -78,16 +90,16 @@ namespace RectifyUtils
 					}
 
 					//East; if we're in-bounds and the eastPeek is the same value, no wall
-					if (w < highX - 1 && data[h, w + 1] == dataCell)
+					if (w < highX - 1 && workingData[w + 1, h] == dataCell)
 					{
 						rNode.Edges.East = EdgeType.None;
 					}
 					else
 					{
 						bool wasOverriden = false;
-						foreach (var detector in edgeOverrides)
+						foreach (var detector in workingEdgeOverrides)
 						{
-							if (w < highX - 1 && detector.MatchesEdge(data[h, w + 1], dataCell))
+							if (w < highX - 1 && detector.MatchesEdge(workingData[w + 1, h], dataCell))
 							{
 								//override with detector's edge type
 								rNode.Edges.East = detector.EdgeType;
@@ -98,40 +110,17 @@ namespace RectifyUtils
 						if (wasOverriden == false) rNode.Edges.East = EdgeType.Wall;
 					}
 
-					//South; if we're in-bounds and the southPeek is the same value, no wall
-					//this *is* South despite the weird offsets, because our data is in quadrant II
-					if (h < highY - 1 && data[h + 1, w] == dataCell)
-					{
-						rNode.Edges.South = EdgeType.None;
-					}
-					else
-					{
-						bool wasOverriden = false;
-						foreach (var detector in edgeOverrides)
-						{
-							if (h < highY - 1 && detector.MatchesEdge(data[h + 1, w], dataCell))
-							{
-								//override with detector's edge type
-								rNode.Edges.South = detector.EdgeType;
-								wasOverriden = true;
-							}
-						}
-
-						if (wasOverriden == false) rNode.Edges.South = EdgeType.Wall;
-					}
-
 					//North; if we're in-bounds and the northPeek is the same value, no wall
-					//this *is* North despite the weird offsets, because our data is in quadrant II
-					if (h > lowY && data[h - 1, w] == dataCell)
+					if (h < highY - 1 && workingData[w, h + 1] == dataCell)
 					{
 						rNode.Edges.North = EdgeType.None;
 					}
 					else
 					{
 						bool wasOverriden = false;
-						foreach (var detector in edgeOverrides)
+						foreach (var detector in workingEdgeOverrides)
 						{
-							if (h > lowY && detector.MatchesEdge(data[h - 1, w], dataCell))
+							if (h < highY - 1 && detector.MatchesEdge(workingData[w, h + 1], dataCell))
 							{
 								//override with detector's edge type
 								rNode.Edges.North = detector.EdgeType;
@@ -142,6 +131,27 @@ namespace RectifyUtils
 						if (wasOverriden == false) rNode.Edges.North = EdgeType.Wall;
 					}
 
+					//South; if we're in-bounds and the southPeek is the same value, no wall
+					if (h > lowY && workingData[w, h - 1] == dataCell)
+					{
+						rNode.Edges.South = EdgeType.None;
+					}
+					else
+					{
+						bool wasOverriden = false;
+						foreach (var detector in workingEdgeOverrides)
+						{
+							if (h > lowY && detector.MatchesEdge(workingData[w, h - 1], dataCell))
+							{
+								//override with detector's edge type
+								rNode.Edges.South = detector.EdgeType;
+								wasOverriden = true;
+							}
+						}
+
+						if (wasOverriden == false) rNode.Edges.South = EdgeType.Wall;
+					}
+
 					//this will translate the width x height into a top-left Quadrant II type grid
 					output[w - lowX, h - lowY] = rNode;
 				}
@@ -150,10 +160,10 @@ namespace RectifyUtils
 			return output;
 		}
 
-		static readonly Position North = new Position(0, -1);
+		static readonly Position North = new Position(0, 1);
 		static readonly Position East = new Position(1, 0);
 		static readonly Position West = new Position(-1, 0);
-		static readonly Position South = new Position(0, 1);
+		static readonly Position South = new Position(0, -1);
 
 		static readonly List<DirectionVector> eachDirection = new List<DirectionVector>() {
 			new DirectionVector() {
@@ -174,45 +184,45 @@ namespace RectifyUtils
 			}
 		};
 
-		public static RectNode[,] GetRectNodesFunctional(int[,] data)
-		{
-			int maxWidth = data.GetLength(1);
-			int maxHeight = data.GetLength(0);
+		//public static RectNode[,] GetRectNodesFunctional(int[,] data)
+		//{
+		//	int maxWidth = data.GetLength(1);
+		//	int maxHeight = data.GetLength(0);
 
-			RectNode[,] output = new RectNode[maxWidth, maxHeight];
+		//	RectNode[,] output = new RectNode[maxWidth, maxHeight];
 
-			for (int h = 0; h < maxHeight; h++)
-			{
-				for (int w = 0; w < maxWidth; w++)
-				{
-					//for each cell, look at its neighbors
-					//this isn't maximally efficient, but suffices for testing for now
-					int dataCell = data[h, w];
-					RectNode rNode = new RectNode();
-					Position gridPosition = new Position(w, h);
+		//	for (int h = 0; h < maxHeight; h++)
+		//	{
+		//		for (int w = 0; w < maxWidth; w++)
+		//		{
+		//			//for each cell, look at its neighbors
+		//			//this isn't maximally efficient, but suffices for testing for now
+		//			int dataCell = data[h, w];
+		//			RectNode rNode = new RectNode();
+		//			Position gridPosition = new Position(w, h);
 
-					foreach (var direction in eachDirection)
-					{
-						Position queryPosition = direction.Vector + gridPosition;
+		//			foreach (var direction in eachDirection)
+		//			{
+		//				Position queryPosition = direction.Vector + gridPosition;
 
-						//if we're in bounds                                            and the neighbor has a different weight
-						if (PositionWithinBounds(queryPosition, maxWidth, maxHeight) && data[queryPosition.yPos, queryPosition.xPos] == dataCell)
-						{
-							rNode.SetEdge(direction, EdgeType.None);
-						}
-						else
-						{
-							rNode.SetEdge(direction, EdgeType.Wall);
-						}
+		//				//if we're in bounds                                            and the neighbor has a different weight
+		//				if (PositionWithinBounds(queryPosition, maxWidth, maxHeight) && data[queryPosition.yPos, queryPosition.xPos] == dataCell)
+		//				{
+		//					rNode.SetEdge(direction, EdgeType.None);
+		//				}
+		//				else
+		//				{
+		//					rNode.SetEdge(direction, EdgeType.Wall);
+		//				}
 
-						//this will translate the width x height into a top-left Quadrant II type grid
-						output[w, h] = rNode;
-					}
-				}
-			}
+		//				//this will translate the width x height into a top-left Quadrant II type grid
+		//				output[w, h] = rNode;
+		//			}
+		//		}
+		//	}
 
-			return output;
-		}
+		//	return output;
+		//}
 
 		private static bool PositionWithinBounds(Position p, int maxWidth, int maxHeight)
 		{
@@ -248,65 +258,65 @@ namespace RectifyUtils
 			{
 				for (int w = 0; w < maxWidth; w++)
 				{
-					//for each cell, check if there is a North edge.
+					//for each cell, check if there is a South edge.
 					//because we intend to destroy the edges as we traverse the data,
-					//the North edge should always be a true outer perimeter of the next shape.
+					//the South edge should always be a true outer perimeter of the next shape.
 					RectNode peekNode = data[w, h];
-					if (peekNode.Edges.North != EdgeType.None && peekNode.Edges.North != EdgeType.BurnedHoleEdge)
+					if (peekNode.Edges.South != EdgeType.None && peekNode.Edges.South != EdgeType.BurnedHoleEdge)
 					{
 
 						//found a new shape. Create a new vertex at w,h, then traverse the edges
 						Position firstVertex = new Position(w, h);
 
 						//the first edge is always known because we just checked for it explicitly.
-						RectEdge firstEdge = new RectEdge(firstVertex, firstVertex + East, peekNode.Edges.North);
+						RectEdge firstEdge = new RectEdge(firstVertex + East, firstVertex, peekNode.Edges.South);
 
-						RectShape foundShape = TranscribeShape(firstVertex, firstEdge, peekNode, parentRegion, data, maxWidth, maxHeight);
+						RectShape foundShape = TranscribeShape(firstVertex + East, firstEdge, peekNode, parentRegion, data, maxWidth, maxHeight);
 
 
 						retShapes.Add(parentRegion, foundShape);
 						parentRegion++;
 					}
 					//now that we've added the shape, check to see if there's a hole as well.
-					//there's a hole if the y-1 node has a south border. (Since we're going top to bottom, that would be impossible UNLESS we're in a hole
-					if (h != 0) //but we can skip the first row, ofcourse.
+					//there's a hole if the y node has a north border. (Since we're going bottom to top, that would be impossible UNLESS we're in a hole
+					if (h < maxHeight) //but we can skip the last row, ofcourse.
 					{
-						RectNode peekHole = data[w, h - 1];
-						if (peekHole.Edges.South != EdgeType.None && peekHole.Edges.South != EdgeType.BurnedHoleEdge)
+						RectNode peekHole = data[w, h];
+						if (peekHole.Edges.North != EdgeType.None && peekHole.Edges.North != EdgeType.BurnedHoleEdge)
 						{
 							//we found a new hole. Treat this as a shape (because it is).
-							Position firstHoleVertex = new Position(w, h);
+							Position firstHoleVertex = new Position(w, h + 1);
 
 							//the first edge is always known because we just checked for it explicitly.
-							RectEdge firstHoleEdge = new RectEdge(firstHoleVertex + East, firstHoleVertex, peekHole.Edges.South);
+							RectEdge firstHoleEdge = new RectEdge(firstHoleVertex, firstHoleVertex + East, peekHole.Edges.North);
 
 
-							RectShape foundHole = TranscribeShape(firstHoleVertex + East, firstHoleEdge, peekHole, -1, data, maxWidth, maxHeight, true, holeRegion);
+							RectShape foundHole = TranscribeShape(firstHoleVertex, firstHoleEdge, peekHole, -1, data, maxWidth, maxHeight, true, holeRegion);
 
-							//starting with peekHole, look north for a rectNode with parentRegion != -1. if you don't find it, look for a north edge with a 
-							//burnedHoleEdge. If we find it, travel north until we find a burnedHoleEdge on the south border, then repeat.
+							//starting with peekHole, look South for a rectNode with parentRegion != -1. if you don't find it, look for a South edge with a 
+							//burnedHoleEdge. If we find it, travel South until we find a burnedHoleEdge on the North border, then repeat.
 
 							//because of how we trace holes, they should never be adjacent, so this should always find the containing parent shape
 							//and never a fellow hole within the parent shape.
 
-							int i_scanUpwards = h - 1;
+							int i_scanDownwards = h;
 							bool foundHoleEdge = false;
 							int foundInt = -1;
-							while (i_scanUpwards >= 0)
+							while (i_scanDownwards >= 0)
 							{
-								RectNode holeParent = data[w, i_scanUpwards];
+								RectNode holeParent = data[w, i_scanDownwards];
 
 								if (foundHoleEdge == false)
 								{
 									if (holeParent.ParentRegion == -1)
 									{
 										//check for a hole border.
-										if (holeParent.Edges.North == EdgeType.BurnedHoleEdge)
+										if (holeParent.Edges.South == EdgeType.BurnedHoleEdge)
 										{
 											foundHoleEdge = true;
-											foundInt = holeParent.NorthEdgeID;
+											foundInt = holeParent.SouthEdgeID;
 										}
-										i_scanUpwards--;
+										i_scanDownwards--;
 										continue;
 									}
 
@@ -317,14 +327,14 @@ namespace RectifyUtils
 								}
 								else
 								{
-									//look south for the other side of the hole. Only stop when we find the *matching* hole
-									if (holeParent.Edges.South == EdgeType.BurnedHoleEdge && holeParent.SouthEdgeID == foundInt)
+									//look North for the other side of the hole. Only stop when we find the *matching* hole
+									if (holeParent.Edges.North == EdgeType.BurnedHoleEdge && holeParent.NorthEdgeID == foundInt)
 									{
 										foundHoleEdge = false;
 										foundInt = -1;
 										continue;
 									}
-									i_scanUpwards--;
+									i_scanDownwards--;
 								}
 							}
 							holeRegion++;
@@ -359,11 +369,11 @@ namespace RectifyUtils
 			if (isHole)
 			{
 				//starting from the other side if we're in a hole.
-				ClearEdge(peekNode, Direction.South, parentRegion, holeRegion);
+				ClearEdge(peekNode, Direction.North, parentRegion, holeRegion);
 			}
 			else
 			{
-				ClearEdge(peekNode, Direction.North, parentRegion, holeRegion); //clear out the edge as we traverse it
+				ClearEdge(peekNode, Direction.South, parentRegion, holeRegion); //clear out the edge as we traverse it
 			}
 
 			//keep looking for edges until we reach our starting point
@@ -404,12 +414,12 @@ namespace RectifyUtils
 			};
 		}
 
-		public static List<RectifyRectangle> MakeRectangles(int[,] v, Position minXY = null, Position maxXY = null, List<RectDetectPair> edgeOverrides = null)
+		public static List<RectifyRectangle> MakeRectangles(int[,] data, DataLayout dataLayout, Position minXY = null, Position maxXY = null, List<RectDetectPair> edgeOverrides = null)
 		{
 
 			if (edgeOverrides == null) edgeOverrides = new List<RectDetectPair>();
 
-			var result = GetRectNodes(v, edgeOverrides, minXY, maxXY);
+			var result = GetRectNodes(data, dataLayout, edgeOverrides, minXY, maxXY);
 			var output = TraverseShapeOutlines(result);
 			var polygons = FindVertsFromEdges(output);
 
@@ -890,7 +900,7 @@ namespace RectifyUtils
 					break;
 				case Direction.South:
 					//keep only those north of the working vertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.VertPosition.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.VertPosition.yPos);
 					break;
 				case Direction.West:
 					//keep only those east of the workingVertex
@@ -898,7 +908,7 @@ namespace RectifyUtils
 					break;
 				case Direction.North:
 					//keep only those south of the workingVertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.VertPosition.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.VertPosition.yPos);
 					break;
 			}
 
@@ -912,7 +922,7 @@ namespace RectifyUtils
 					break;
 				case Direction.North:
 					//keep only those north of the working vertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.VertPosition.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.VertPosition.yPos);
 					break;
 				case Direction.East:
 					//keep only those east of the workingVertex
@@ -920,7 +930,7 @@ namespace RectifyUtils
 					break;
 				case Direction.South:
 					//keep only those south of the workingVertex
-					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos > workingVert.VertPosition.yPos);
+					vertCutTargets = vertCutTargets.FindAll(e => e.FirstPosition.yPos < workingVert.VertPosition.yPos);
 					break;
 			}
 
@@ -1104,7 +1114,7 @@ namespace RectifyUtils
 
 				List<RectEdge> firstChord = null;
 				List<RectEdge> secondChord = null;
-				//our cuts will always be left-to-right or down-to-top (mathmatically, in the quadrant we're working out of, this is cutting "down")
+				//our cuts will always be left-to-right or down-to-top 
 				//if firstIncision doesn't have the lower of the x/y values, swap first and second incision.
 				if (spanningEdge.FirstPosition.xPos == spanningEdge.SecondPosition.xPos)
 				{
@@ -1360,7 +1370,7 @@ namespace RectifyUtils
 						//then create straight edges between them (plan is to have no holes at this point to counfound this)
 						//finally, set the .Next to point to the new edges, and create new RectShapes from the new cycles.
 
-						//our cuts will always be left-to-right or down-to-top (mathmatically, in the quadrant we're working out of, this is cutting "down")
+						//our cuts will always be left-to-right or down-to-top
 						//if firstIncision doesn't have the lower of the x/y values, swap first and second incision.
 						if (rEdge.FirstPosition.xPos == rEdge.SecondPosition.xPos)
 						{
@@ -1956,7 +1966,7 @@ namespace RectifyUtils
 																														//then create straight edges between them (plan is to have no holes at this point to counfound this)
 																														//finally, set the .Next to point to the new edges, and create new RectShapes from the new cycles.
 
-				//our cuts will always be left-to-right or down-to-top (mathmatically, in the quadrant we're working out of, this is cutting "down")
+				//our cuts will always be left-to-right or down-to-top 
 				//if firstIncision doesn't have the lower of the x/y values, swap first and second incision.
 				if (chord.FirstPosition.xPos == chord.SecondPosition.xPos)
 				{
@@ -2572,11 +2582,11 @@ namespace RectifyUtils
 			switch (workingEdge.HeadingDirection)
 			{
 				case Direction.East:
-					headingOffset = new Position(-1, 0);
+					headingOffset = new Position(-1, -1);
 					switch (d)
 					{
 						case Direction.North:
-							directionOffset = new Position(1, -1);
+							directionOffset = new Position(1, 1);
 							edgeDirection = Direction.West;
 							break;
 						case Direction.East:
@@ -2592,15 +2602,15 @@ namespace RectifyUtils
 					}
 					break;
 				case Direction.South:
-					headingOffset = new Position(-1, -1);
+					headingOffset = new Position(-1, 0);
 					switch (d)
 					{
 						case Direction.East:
-							directionOffset = new Position(1, 1);
+							directionOffset = new Position(1, -1);
 							edgeDirection = Direction.North;
 							break;
 						case Direction.South:
-							directionOffset = new Position(0, 1);
+							directionOffset = new Position(0, -1);
 							edgeDirection = Direction.East;
 							break;
 						case Direction.West:
@@ -2612,11 +2622,11 @@ namespace RectifyUtils
 					}
 					break;
 				case Direction.West:
-					headingOffset = new Position(0, -1);
+					headingOffset = new Position(0, 0);
 					switch (d)
 					{
 						case Direction.South:
-							directionOffset = new Position(-1, 1);
+							directionOffset = new Position(-1, -1);
 							edgeDirection = Direction.East;
 							break;
 						case Direction.West:
@@ -2632,15 +2642,15 @@ namespace RectifyUtils
 					}
 					break;
 				case Direction.North:
-					headingOffset = new Position(0, 0);
+					headingOffset = new Position(0, -1);
 					switch (d)
 					{
 						case Direction.West:
-							directionOffset = new Position(-1, -1);
+							directionOffset = new Position(-1, 1);
 							edgeDirection = Direction.South;
 							break;
 						case Direction.North:
-							directionOffset = new Position(0, -1);
+							directionOffset = new Position(0, 1);
 							edgeDirection = Direction.West;
 							break;
 						case Direction.East:
@@ -2783,7 +2793,7 @@ namespace RectifyUtils
 						outVectors.Add(Direction.East);
 					}
 
-					if (workingEdge.SecondPosition.yPos > 0)
+					if (workingEdge.SecondPosition.yPos < maxHeight)
 					{
 						outVectors.Add(Direction.North);
 					}
@@ -2795,7 +2805,7 @@ namespace RectifyUtils
 					//because we're moving interior clockwise, we can always add west
 					outVectors.Add(Direction.West);
 
-					if (workingEdge.SecondPosition.yPos < maxHeight)
+					if (workingEdge.SecondPosition.yPos > 0)
 					{
 						outVectors.Add(Direction.South);
 					}
@@ -2817,7 +2827,7 @@ namespace RectifyUtils
 						outVectors.Add(Direction.West);
 					}
 
-					if (workingEdge.SecondPosition.yPos < maxHeight)
+					if (workingEdge.SecondPosition.yPos > 0)
 					{
 						outVectors.Add(Direction.South);
 					}
@@ -2829,7 +2839,7 @@ namespace RectifyUtils
 					//because we're moving interior clockwise, we can always add East
 					outVectors.Add(Direction.East);
 
-					if (workingEdge.SecondPosition.yPos > 0)
+					if (workingEdge.SecondPosition.yPos < maxHeight)
 					{
 						outVectors.Add(Direction.North);
 					}

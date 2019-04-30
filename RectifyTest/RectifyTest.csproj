@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CreateRectNodesTest.cs" />
+    <Compile Include="DataUtilsTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RectifyPathfinderTest.cs" />
     <Compile Include="TestData.cs" />

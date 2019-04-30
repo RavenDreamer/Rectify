@@ -16,6 +16,12 @@ namespace RectifyUtils
 		Unknown = 8,
 	}
 
+	public enum DataLayout
+	{
+		CodeInitializedArray, //you initialized a 2d array in code, but want the visual bottom left value to be @ 0,0
+		Quadrant1, //origin is @ 0,0 in the bottom left corner. No processing needed.
+	}
+
 	public enum FlowType
 	{
 		source, //original source for flow nodes
@@ -399,8 +405,8 @@ namespace RectifyUtils
 			}
 		}
 
-		private readonly Position topLeft;
-		private readonly Position bottomRight;
+		private readonly Position topRight;
+		private readonly Position bottomLeft;
 
 		public RectifyRectangle(RectShape shape, bool validateRectangle = true)
 		{
@@ -423,20 +429,20 @@ namespace RectifyUtils
 			}
 			//get the defining positions from the verts
 			//temporary assignment
-			topLeft = shape.Vertices.First().VertPosition;
-			bottomRight = topLeft;
+			topRight = shape.Vertices.First().VertPosition;
+			bottomLeft = topRight;
 			for (int i = 1; i < 4; i++)
 			{
-				if (shape.Vertices[i].VertPosition.xPos < topLeft.xPos ||
-					shape.Vertices[i].VertPosition.yPos < topLeft.yPos)
+				if (shape.Vertices[i].VertPosition.xPos < bottomLeft.xPos ||
+					shape.Vertices[i].VertPosition.yPos < bottomLeft.yPos)
 				{
-					topLeft = shape.Vertices[i].VertPosition;
+					bottomLeft = shape.Vertices[i].VertPosition;
 				}
 
-				if (shape.Vertices[i].VertPosition.xPos > bottomRight.xPos ||
-					shape.Vertices[i].VertPosition.yPos > bottomRight.yPos)
+				if (shape.Vertices[i].VertPosition.xPos > topRight.xPos ||
+					shape.Vertices[i].VertPosition.yPos > topRight.yPos)
 				{
-					bottomRight = shape.Vertices[i].VertPosition;
+					topRight = shape.Vertices[i].VertPosition;
 				}
 			}
 
@@ -459,14 +465,14 @@ namespace RectifyUtils
 
 			//get all the edges w/ firstPosition y == topLeft.y && secondPosition y == topLeft.y
 			TopEdge = new RectNeighbor[this.Width];
-			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.West).OrderBy(e => e.FirstPosition.xPos).ToArray();
+			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.East).OrderBy(e => e.SecondPosition.xPos).ToArray();
 			for (int i = 0; i < workingEdges.Count(); i++)
 			{
 				TopEdge[i] = new RectNeighbor(null, workingEdges[i].EdgeType);
 			}
 
 			BottomEdge = new RectNeighbor[this.Width];
-			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.East).OrderBy(e => e.SecondPosition.xPos).ToArray();
+			workingEdges = shape.Perimeter.FindAll(e => e.HeadingDirection == Direction.West).OrderBy(e => e.FirstPosition.xPos).ToArray();
 			for (int i = 0; i < workingEdges.Count(); i++)
 			{
 				BottomEdge[i] = new RectNeighbor(null, workingEdges[i].EdgeType);
@@ -624,8 +630,8 @@ namespace RectifyUtils
 		public int MinDistanceFrom(Position p)
 		{
 			//if the point is inside the rectangle, return 0.
-			if (topLeft.xPos <= p.xPos && p.xPos <= bottomRight.xPos &&
-				topLeft.yPos <= p.yPos && p.yPos <= bottomRight.yPos)
+			if (topRight.xPos <= p.xPos && p.xPos <= bottomLeft.xPos &&
+				topRight.yPos <= p.yPos && p.yPos <= bottomLeft.yPos)
 			{
 				return 0;
 			}
@@ -679,7 +685,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return new Position(topLeft);
+				return new Position(bottomLeft);
 			}
 		}
 
@@ -687,7 +693,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return bottomRight.xPos - topLeft.xPos;
+				return topRight.xPos - bottomLeft.xPos;
 			}
 		}
 
@@ -695,7 +701,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return bottomRight.yPos - topLeft.yPos;
+				return topRight.yPos - bottomLeft.yPos;
 			}
 		}
 
@@ -703,7 +709,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return topLeft.xPos;
+				return bottomLeft.xPos;
 			}
 		}
 
@@ -711,7 +717,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return bottomRight.yPos;
+				return topRight.yPos;
 			}
 		}
 
@@ -719,7 +725,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return bottomRight.xPos;
+				return topRight.xPos;
 			}
 		}
 
@@ -728,7 +734,7 @@ namespace RectifyUtils
 		{
 			get
 			{
-				return topLeft.yPos;
+				return bottomLeft.yPos;
 			}
 		}
 
@@ -784,11 +790,11 @@ namespace RectifyUtils
 				var direct = this.HeadingVector;
 				if (direct.xPos == 0 && direct.yPos >= 1)
 				{
-					return Direction.South;
+					return Direction.North;
 				}
 				if (direct.xPos == 0 && direct.yPos <= -1)
 				{
-					return Direction.North;
+					return Direction.South;
 				}
 				if (direct.xPos >= 1 && direct.yPos == 0)
 				{

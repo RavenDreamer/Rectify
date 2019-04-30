@@ -563,8 +563,84 @@ namespace RectifyUtils
 				outNodes.Add(goalNode);
 			}
 
-			//TODO: Add Diagonals in here. Even if you don't allow diagnoal movement, we can take advantage of
+			//Add Diagonals in here. Even if you don't allow diagnoal movement, we can take advantage of
 			//it here to find the ideal node paths b/c we're in a rectangle.
+
+			//topLeft
+			{
+				RectifyNode topLeft = null;
+				//can't be on the left or top edges already.
+				if (parent.Left < nodePos.xPos && parent.Top - 1 > nodePos.yPos)
+				{
+					//add -1,+1 until nodePos.xpos = left or parent.Top - 1
+					var leftSteps = nodePos.xPos - parent.Left;
+					var upSteps = parent.Top - 1 - nodePos.yPos;
+					var minSteps = Math.Min(leftSteps, upSteps);
+
+					topLeft = new RectifyNode(parent, new Position(nodePos.xPos - minSteps, nodePos.yPos + minSteps));
+					//                     base cost * distance travelled                         + cost to get here
+					topLeft.PathCost = parent.BaseCost * ((nodePos - topLeft.Position).Magnitude);
+					topLeft.Manhatten = (goalPos - topLeft.Position).Magnitude;
+					outNodes.Add(topLeft);
+				}
+			}
+
+			//topRight
+			{
+				RectifyNode topRight = null;
+				//can't be on the right or top edges already.
+				if (parent.Right - 1 > nodePos.xPos && parent.Top - 1 > nodePos.yPos)
+				{
+					//add +1,+1 until nodePos.xpos = right - 1 or parent.Top - 1
+					var rightSteps = parent.Right - 1 - nodePos.xPos;
+					var upSteps = parent.Top - 1 - nodePos.yPos;
+					var minSteps = Math.Min(rightSteps, upSteps);
+
+					topRight = new RectifyNode(parent, new Position(nodePos.xPos + minSteps, nodePos.yPos + minSteps));
+					//                     base cost * distance travelled                         + cost to get here
+					topRight.PathCost = parent.BaseCost * ((nodePos - topRight.Position).Magnitude);
+					topRight.Manhatten = (goalPos - topRight.Position).Magnitude;
+					outNodes.Add(topRight);
+				}
+			}
+
+			//bottomRight
+			{
+				RectifyNode bottomRight = null;
+				//can't be on the right or bottom edges already.
+				if (parent.Right - 1 > nodePos.xPos && parent.Bottom < nodePos.yPos)
+				{
+					//add +1,-1 until nodePos.xpos = right -1 or parent.Bottom
+					var rightSteps = parent.Right - 1 - nodePos.xPos;
+					var downSteps = nodePos.yPos - parent.Bottom;
+					var minSteps = Math.Min(downSteps, rightSteps);
+
+					bottomRight = new RectifyNode(parent, new Position(nodePos.xPos + minSteps, nodePos.yPos - minSteps));
+					//                     base cost * distance travelled                         + cost to get here
+					bottomRight.PathCost = parent.BaseCost * ((nodePos - bottomRight.Position).Magnitude);
+					bottomRight.Manhatten = (goalPos - bottomRight.Position).Magnitude;
+					outNodes.Add(bottomRight);
+				}
+			}
+
+			//bottomLeft
+			{
+				RectifyNode bottomLeft = null;
+				//can't be on the right or bottom edges already.
+				if (parent.Left < nodePos.xPos && parent.Bottom < nodePos.yPos)
+				{
+					//add -1,-1 until nodePos.xpos = parent.left or parent.Bottom
+					var leftSteps = nodePos.xPos - parent.Left;
+					var downSteps = nodePos.yPos - parent.Bottom;
+					var minSteps = Math.Min(downSteps, leftSteps);
+
+					bottomLeft = new RectifyNode(parent, new Position(nodePos.xPos - minSteps, nodePos.yPos - minSteps));
+					//                     base cost * distance travelled                         + cost to get here
+					bottomLeft.PathCost = parent.BaseCost * ((nodePos - bottomLeft.Position).Magnitude);
+					bottomLeft.Manhatten = (goalPos - bottomLeft.Position).Magnitude;
+					outNodes.Add(bottomLeft);
+				}
+			}
 
 			//left
 			{
