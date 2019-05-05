@@ -674,7 +674,7 @@ namespace RectifyUtils
 		//	return false;
 		//}
 
-		internal bool ContainsPoint(Position position, float positiveOffset)
+		internal bool ContainsPoint(Position position, float positiveOffset = .5f)
 		{
 			if ((position.xPos + positiveOffset) < this.Right && (position.xPos + positiveOffset) >= this.Left && (position.yPos + positiveOffset) < this.Top && (position.yPos + positiveOffset) >= this.Bottom) return true;
 

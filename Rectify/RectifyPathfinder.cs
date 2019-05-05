@@ -1,6 +1,7 @@
 ﻿using Priority_Queue;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -12,16 +13,24 @@ namespace RectifyUtils
 		{
 			public readonly RectifyRectangle startRect;
 			public readonly RectifyRectangle endRect;
-			public List<Position> pathNodes;
+			public List<RectifyRectangle> nearestStartNeighbors = new List<RectifyRectangle>();
+			public List<RectifyRectangle> nearestEndNeighbors = new List<RectifyRectangle>();
+
+			/// <summary>
+			/// Not used for equality
+			/// </summary>
+			public List<Position> pathNodes = new List<Position>();
 
 			public readonly HashSet<EdgeType> pathEdges;
 
-			public PathQuery(RectifyRectangle start, RectifyRectangle end, IEnumerable<EdgeType> edges, List<Position> path)
+			public PathQuery(RectifyRectangle start, RectifyRectangle end, IEnumerable<EdgeType> edges, List<RectifyRectangle> nearestStart, List<RectifyRectangle> nearestEnd, List<Position> path)
 			{
 				startRect = start;
 				endRect = end;
 				pathEdges = new HashSet<EdgeType>(edges);
-				pathNodes = path;
+				this.nearestStartNeighbors = nearestStart;
+				this.nearestEndNeighbors = nearestEnd;
+				this.pathNodes = path;
 			}
 
 			//modifying this method based on the MSDN implementation of "TwoDPoint"
@@ -40,7 +49,29 @@ namespace RectifyUtils
 				}
 
 				// Return true if the fields match:
-				return (startRect == p.startRect) && (endRect == p.endRect) && (HashSetContainsSameEdges(p.pathEdges));
+				return (startRect == p.startRect) && (endRect == p.endRect) && (HashSetContainsSameEdges(p.pathEdges)) && ListsOrderedTheSame(this.nearestStartNeighbors, p.nearestStartNeighbors) && ListsOrderedTheSame(this.nearestEndNeighbors, p.nearestEndNeighbors);
+			}
+
+			/// <summary>
+			/// Returns true if the lists contain the same elements in the same order.
+			/// </summary>
+			/// <param name="nearestNeighbors1"></param>
+			/// <param name="nearestNeighbors2"></param>
+			/// <returns></returns>
+			private static bool ListsOrderedTheSame(List<RectifyRectangle> myNeighbors, List<RectifyRectangle> othersNeighbors)
+			{
+				//We only care about neighbors up to the point where we exit.
+				//This means our count should always be less-than or equal to the comparing list
+				if (myNeighbors.Count > othersNeighbors.Count) return false;
+				for (int i = 0; i < myNeighbors.Count; i++)
+				{
+					if (myNeighbors[i] != othersNeighbors[i])
+					{
+						return false;
+					}
+				}
+
+				return true;
 			}
 
 			public bool Equals(PathQuery p)
@@ -52,7 +83,7 @@ namespace RectifyUtils
 				}
 
 				// Return true if the fields match:
-				return (startRect == p.startRect) && (endRect == p.endRect) && (HashSetContainsSameEdges(p.pathEdges));
+				return (startRect == p.startRect) && (endRect == p.endRect) && (HashSetContainsSameEdges(p.pathEdges)) && ListsOrderedTheSame(this.nearestStartNeighbors, p.nearestStartNeighbors) && ListsOrderedTheSame(this.nearestEndNeighbors, p.nearestEndNeighbors);
 			}
 
 			//verifies that the other hashSet contains all of our elements and vice versa
@@ -88,9 +119,10 @@ namespace RectifyUtils
 				return i;
 			}
 
+			//not sure we use this outside of limited debugging
 			public override string ToString()
 			{
-				return "Edges: " + GetEdgesString() + " Path: " + GetPathString();
+				return "Edges: " + GetEdgesString();
 			}
 
 			private string GetEdgesString()
@@ -101,16 +133,6 @@ namespace RectifyUtils
 					s += et.ToString() + ", ";
 				}
 				return s.Substring(0, s.Length - 2);
-			}
-
-			private string GetPathString()
-			{
-				string s = "";
-				foreach (Position p in pathNodes)
-				{
-					s += p.ToString();
-				}
-				return s;
 			}
 		}
 
@@ -139,7 +161,20 @@ namespace RectifyUtils
 			}
 		}
 
+		public class PathfinderMetrics
+		{
+			public int FrontierSize { get; set; }
+			public int VisitedNodes { get; set; }
+			public long RuntimeInMillis { get; set; }
 
+			public PathfinderMetrics(int frontier, int visited, long runtime)
+			{
+				FrontierSize = frontier;
+				VisitedNodes = visited;
+				RuntimeInMillis = runtime;
+			}
+
+		}
 
 		protected class RectifyNode
 		{
@@ -220,6 +255,31 @@ namespace RectifyUtils
 
 		/// <summary>
 		/// Calculates a path from the given start position to the given end position for this Pathfinder's list of
+		/// rectangles. Only rectangles with a shared edge within flagsMask will be considered. This overload Includes additional
+		/// metrics about the nature of the pathfinding.
+		/// </summary>
+		/// <param name="startPosition"></param>
+		/// <param name="endPosition"></param>
+		/// <param name="metrics"></param>
+		/// <param name="flagsMask"></param>
+		/// <returns></returns>
+		public List<Position> CalculatePath(Position startPosition, Position endPosition, out PathfinderMetrics metrics, int flagsMask = (int)EdgeType.None)
+		{
+			var watch = Stopwatch.StartNew();
+			PathfinderMetrics results = new PathfinderMetrics(0, 0, 0);
+			// something to time
+			var pathResult = CalculatePath(startPosition, endPosition, flagsMask, results);
+			// done timing
+			watch.Stop();
+			results.RuntimeInMillis = watch.ElapsedMilliseconds;
+
+			metrics = results;
+
+			return pathResult;
+		}
+
+		/// <summary>
+		/// Calculates a path from the given start position to the given end position for this Pathfinder's list of
 		/// rectangles. Only rectangles with a shared edge within flagsMask will be considered.
 		/// </summary>
 		/// <param name="startPosition"></param>
@@ -227,6 +287,13 @@ namespace RectifyUtils
 		/// <param name="flagsMask"></param>
 		/// <returns></returns>
 		public List<Position> CalculatePath(Position startPosition, Position endPosition, int flagsMask = (int)EdgeType.None)
+		{
+			//hide the metric overload so there's less confusion about which method to call
+			return CalculatePath(startPosition, endPosition, flagsMask, null);
+		}
+
+
+		private List<Position> CalculatePath(Position startPosition, Position endPosition, int flagsMask = (int)EdgeType.None, PathfinderMetrics metrics = null)
 		{
 			//get valid edgetypes from the mask
 			HashSet<EdgeType> edgeTypesFromMask = new HashSet<EdgeType>();
@@ -247,11 +314,12 @@ namespace RectifyUtils
 				return new List<Position>() { startPosition, endPosition };
 			}
 			//construct path query to see if it's in the cache
-			PathQuery cacheQuery = new PathQuery(startRect, endRect, edgeTypesFromMask, null);
-			if (pathCache.Contains(cacheQuery) && false)
+			PathQuery cacheQuery = new PathQuery(startRect, endRect, edgeTypesFromMask, GetNearestNeighbors(startRect, startPosition, edgeTypesFromMask), GetNearestNeighbors(endRect, endPosition, edgeTypesFromMask), null);
+			var cacheResult = pathCache.Find(c => c.Equals(cacheQuery));
+			if (cacheResult != null)
 			{
 				//return cached path w/ current start / end position
-				PathQuery cacheResult = pathCache.Find(pq => pq.startRect.Equals(cacheQuery.startRect) && pq.endRect.Equals(cacheQuery.endRect) && pq.pathEdges.Intersect(cacheQuery.pathEdges).Count() == pq.pathEdges.Count);
+
 				//move cached path to the top of the list;
 				pathCache.Remove(cacheResult);
 				pathCache.Insert(0, cacheResult);
@@ -261,6 +329,13 @@ namespace RectifyUtils
 					endPosition
 				};
 				path.Insert(0, startPosition);
+
+				//hit the cache, so no processing at all.
+				if (metrics != null)
+				{
+					metrics.FrontierSize = 0;
+					metrics.VisitedNodes = 0;
+				}
 
 				return path;
 			}
@@ -274,7 +349,7 @@ namespace RectifyUtils
 				}
 
 				//calculate the whole path
-				List<Position> path = GetPathBetweenRectangles(startPosition, endPosition, startRect, endRect, edgeTypesFromMask);
+				List<Position> path = GetPathBetweenRectangles(startPosition, endPosition, startRect, endRect, edgeTypesFromMask, out int visitedNodeCount, out int frontierNodeCount);
 
 				if (path.Count == 0)
 				{
@@ -287,12 +362,188 @@ namespace RectifyUtils
 				cachePath.RemoveAt(0);
 				cachePath.RemoveAt(cachePath.Count - 1);
 
+				//set the cachePath on the cacheQuery we constructed earlier (it's still valid)
+				cacheQuery.pathNodes = cachePath;
+
+				//remove the extra neighbor nodes by getting the first rectangle from the path that isn't the start rectangle.
+				//first, get the rect immediately after the startRect
+				TrimNeighbors(startRect, cacheQuery.nearestStartNeighbors, cachePath, false);
+				TrimNeighbors(endRect, cacheQuery.nearestStartNeighbors, cachePath, false);
+
+				//and the same from the end node
+				//intentionally broke
+
 				//cache
-				pathCache.Insert(0, new PathQuery(startRect, endRect, edgeTypesFromMask, cachePath));
+				pathCache.Insert(0, cacheQuery);
+
+				//add metrics if requested
+				if (metrics != null)
+				{
+					metrics.FrontierSize = frontierNodeCount;
+					metrics.VisitedNodes = visitedNodeCount;
+				}
 
 				return path;
 			}
 
+		}
+
+		/// <summary>
+		/// If the nearest neighbors for the start / endpoints are in the same order, any path between start / end rect must be the same.
+		/// Anything further away than the actual path taken can be discounted as non-optimal. (I think)
+		/// </summary>
+		/// <param name="startRect"></param>
+		/// <param name="neighbors"></param>
+		/// <param name="initialPath"></param>
+		/// <param name="applyReverse"></param>
+		private static void TrimNeighbors(RectifyRectangle startRect, List<RectifyRectangle> neighbors, List<Position> initialPath, bool applyReverse)
+		{
+			var path = new List<Position>(initialPath);
+			if (applyReverse) path.Reverse();
+
+			for (int i = 0; i < path.Count; i++)
+			{
+				if (startRect.ContainsPoint(path[i])) continue;
+
+				//we have the first point not in the startRect
+				//minus 1 because if the last rect is the nearest neighbor we need the whole list anyway
+				for (int j = 0; j < neighbors.Count - 1; j++)
+				{
+					//skip until we find the first path rect
+					if (neighbors[j].ContainsPoint(path[i]) == false) continue;
+					{
+						//drop all neighbors in the j+1th elements.
+						neighbors.RemoveRange(j + 1, neighbors.Count - j - 1);
+					}
+				}
+				break;
+			}
+		}
+
+		/// <summary>
+		/// Gets a list of the neighbors for the given rect, and the minimum distance to leave 
+		/// via them.
+		/// </summary>
+		/// <param name="startRect"></param>
+		/// <param name="startPosition"></param>
+		/// <returns></returns>
+		private List<RectifyRectangle> GetNearestNeighbors(RectifyRectangle startRect, Position startPosition, HashSet<EdgeType> allowedEdges)
+		{
+			Dictionary<RectifyRectangle, int> nearDistanceCache = new Dictionary<RectifyRectangle, int>();
+
+
+			//top & bottom edge
+
+			for (int i = 0; i < startRect.TopEdge.Length; i++)
+			{
+				var topPair = startRect.TopEdge[i];
+
+				if (allowedEdges.Contains(topPair.EdgeType) == false || topPair.Neighbor == null)
+				{
+					//not a valid neighbor
+				}
+				else
+				{
+					Position topOffset = startRect.Offset + new Position(i, startRect.Height);
+
+					if (nearDistanceCache.TryGetValue(topPair.Neighbor, out int oldValue))
+					{
+						int newValue = (topOffset - startPosition).Magnitude;
+						if (newValue < oldValue)
+						{
+							nearDistanceCache[topPair.Neighbor] = newValue;
+						}
+					}
+					else
+					{
+						//not in neighbor cache, add it.
+						nearDistanceCache[topPair.Neighbor] = (topOffset - startPosition).Magnitude;
+					}
+				}
+				//bottom
+				var botPair = startRect.BottomEdge[i];
+				if (allowedEdges.Contains(botPair.EdgeType) == false || botPair.Neighbor == null)
+				{
+					//not a valid neighbor
+				}
+				else
+				{
+					Position botOffset = startRect.Offset + new Position(i, 0);
+
+					if (nearDistanceCache.TryGetValue(botPair.Neighbor, out int oldValue))
+					{
+						int newValue = (botOffset - startPosition).Magnitude;
+						if (newValue < oldValue)
+						{
+							nearDistanceCache[botPair.Neighbor] = newValue;
+						}
+					}
+					else
+					{
+						//not in neighbor cache, add it.
+						nearDistanceCache[botPair.Neighbor] = (botOffset - startPosition).Magnitude;
+					}
+				}
+			}
+
+			//left & right edge
+
+			for (int j = 0; j < startRect.LeftEdge.Length; j++)
+			{
+				var leftPair = startRect.LeftEdge[j];
+
+				if (allowedEdges.Contains(leftPair.EdgeType) == false || leftPair.Neighbor == null)
+				{
+					//not a valid neighbor
+				}
+				else
+				{
+					Position leftOffset = startRect.Offset + new Position(0, j);
+
+					if (nearDistanceCache.TryGetValue(leftPair.Neighbor, out int oldValue))
+					{
+						int newValue = (leftOffset - startPosition).Magnitude;
+						if (newValue < oldValue)
+						{
+							nearDistanceCache[leftPair.Neighbor] = newValue;
+						}
+					}
+					else
+					{
+						//not in neighbor cache, add it.
+						nearDistanceCache[leftPair.Neighbor] = (leftOffset - startPosition).Magnitude;
+					}
+				}
+				//bottom
+				var rightPair = startRect.RightEdge[j];
+				if (allowedEdges.Contains(rightPair.EdgeType) == false || rightPair.Neighbor == null)
+				{
+					//not a valid neighbor
+				}
+				else
+				{
+					Position rightOffset = startRect.Offset + new Position(startRect.Width, j);
+
+					if (nearDistanceCache.TryGetValue(rightPair.Neighbor, out int oldValue))
+					{
+						int newValue = (rightOffset - startPosition).Magnitude;
+						if (newValue < oldValue)
+						{
+							nearDistanceCache[rightPair.Neighbor] = newValue;
+						}
+					}
+					else
+					{
+						//not in neighbor cache, add it.
+						nearDistanceCache[rightPair.Neighbor] = (rightOffset - startPosition).Magnitude;
+					}
+				}
+			}
+
+			//now convert to list of RectifyRectangles, after orderby-ing the distance.
+			var rectList = nearDistanceCache.ToList().OrderBy(kvp => kvp.Value).Select(kvp => kvp.Key);
+
+			return rectList.ToList();
 		}
 
 		/// <summary>
@@ -433,7 +684,7 @@ namespace RectifyUtils
 		/// <param name="endRect"></param>
 		/// <param name="edgeTypesFromMask"></param>
 		/// <returns></returns>
-		private List<Position> GetPathBetweenRectangles(Position startPos, Position endPos, RectifyRectangle startRect, RectifyRectangle endRect, HashSet<EdgeType> edgeTypesFromMask)
+		private List<Position> GetPathBetweenRectangles(Position startPos, Position endPos, RectifyRectangle startRect, RectifyRectangle endRect, HashSet<EdgeType> edgeTypesFromMask, out int visitedNodeCount, out int frontierNodeCount)
 		{
 			SimplePriorityQueue<RectifyNode> frontierQueue = new SimplePriorityQueue<RectifyNode>();
 			var startNode = new RectifyNode(startRect, startPos) { PathCost = 0 };
@@ -506,6 +757,8 @@ namespace RectifyUtils
 				//should never get here b/c we test pathability earlier.
 				//maybe remove that now that we're not using janky pathfinding
 				//shenannigans?
+				visitedNodeCount = visitedNodes.Count;
+				frontierNodeCount = frontierNodes.Count;
 				return new List<Position>();
 			}
 			else
@@ -535,6 +788,8 @@ namespace RectifyUtils
 						finalPath.Add(rectPos.Last().Position);
 					}
 				}
+				visitedNodeCount = visitedNodes.Count;
+				frontierNodeCount = frontierNodes.Count;
 
 				return finalPath;
 			}

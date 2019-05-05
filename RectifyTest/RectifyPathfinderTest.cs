@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RectifyUtils;
+using static RectifyUtils.RectifyPathfinder;
 
 namespace RectifyTest
 {
@@ -64,12 +65,15 @@ namespace RectifyTest
 
 			var pathfinder = new RectifyPathfinder(result);
 
-			var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), (int)EdgeType.None | (int)EdgeType.Aperture);
-			//resultPath = pathfinder.CalculatePath(new Position(119, 99), new Position(150, 63));
-
-			//throw new NotImplementedException("Need to figure out how to cache the RSR results");
-
+			var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), out PathfinderMetrics metrics, (int)EdgeType.None | (int)EdgeType.Aperture);
 			Assert.AreEqual(44, resultPath.Count, "fail to find a path as expected");
+
+			//same overall path, this should hit the cache.
+			resultPath = pathfinder.CalculatePath(new Position(109, 145), new Position(150, 75), out PathfinderMetrics metricsAfterCache, (int)EdgeType.None | (int)EdgeType.Aperture);
+
+			Assert.AreNotEqual(0, metrics.VisitedNodes, "pathfound w/o traversing nodes somehow");
+			Assert.AreEqual(0, metricsAfterCache.VisitedNodes, "pathfound w/o using the cache as intended");
+
 		}
 
 		[TestMethod]
