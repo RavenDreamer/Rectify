@@ -32,5 +32,10 @@ namespace RectifyUtils
 
 			return inverseArray;
 		}
+
+		public static RectNode[,] GridLatticeToRectNode2D(GridLattice<int> input)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

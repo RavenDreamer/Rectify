@@ -59,8 +59,6 @@ namespace RectifyTest
 				new RectDetectPair(0, 3, EdgeType.Aperture)
 			};
 
-
-
 			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
 			var pathfinder = new RectifyPathfinder(result);
