@@ -5,6 +5,15 @@ using System.Text;
 namespace RectifyUtils
 {
 	/// <summary>
+	/// A gridlattice filled with these can be converted into pathing data for a RectNode[,]
+	/// </summary>
+	public interface IRectGrid
+	{
+		int PathGroup();
+		int PathModifier();
+	}
+
+	/// <summary>
 	/// A dense 1-d array that maps to an M by N grid w/ shared edge data.
 	/// </summary>
 	public class GridLattice<T>
