@@ -798,6 +798,28 @@ namespace RectifyTest
 			}
 		}
 
+		[TestMethod]
+		[TestCategory("From GridLattice")]
+		public void RectNodesFromEmptyGridLatticeTest()
+		{
+			List<RectifyRectangle> result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice());
+			Assert.AreEqual(1, result.Count, "Didn't get the single Rectangle as expected");
+		}
+
+		[TestMethod]
+		[TestCategory("From GridLattice")]
+		public void RectNodesFromGridLatticeTest()
+		{
+			List<RectifyRectangle> result = Rectify.MakeRectangles(GridLatticeTestData.EdgeTorusGridLattice());
+			Assert.AreEqual(5, result.Count, "Didn't get the 5 Rectangles expected");
+
+			List<RectifyRectangle> result2 = Rectify.MakeRectangles(GridLatticeTestData.CenterCellTorusGridLattice());
+			Assert.AreEqual(5, result2.Count, "Didn't get the 5 Rectangles expected");
+
+			List<RectifyRectangle> result3 = Rectify.MakeRectangles(GridLatticeTestData.SingleEdgeGridLattice());
+			Assert.AreEqual(4, result3.Count, "Didn't get the 4 Rectangles expected");
+		}
+
 
 
 		[TestMethod]

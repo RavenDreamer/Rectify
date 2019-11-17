@@ -8,6 +8,108 @@ namespace RectifyUtils
 {
 	public class Rectify
 	{
+
+		public static RectNode[,] GetRectNodes(GridLattice<IRectGrid> latticeData, Position targetminXY = null, Position targetmaxXY = null)
+		{
+			int lowX;
+			int lowY;
+			int highX;
+			int highY;
+			if (targetminXY == null)
+			{
+				lowX = 0;
+				lowY = 0;
+			}
+			else
+			{
+				lowX = targetminXY.xPos;
+				lowY = targetminXY.yPos;
+			}
+			if (targetmaxXY == null)
+			{
+				highX = latticeData.Width;
+				highY = latticeData.Height;
+			}
+			else
+			{
+				highX = targetmaxXY.xPos;
+				highY = targetmaxXY.yPos;
+			}
+
+			RectNode[,] output = new RectNode[highX - lowX, highY - lowY];
+
+			for (int x = lowX; x < highX; x++)
+			{
+				for (int y = lowY; y < highY; y++)
+				{
+					output[x, y] = new RectNode();
+
+					//this is not optimised for the shared walls, but since RectNode keeps shared edges separate, is a necessary evil.
+
+					//two cases for walls -- the wall is a different path group than its neighboring cells, or there is only one neighbor (aka, we're on the edge)
+
+					if (x == lowX)
+					{
+						//on the west edge, it's a wall.
+						output[x, y].Edges.West = EdgeType.Wall;
+					}
+					else
+					{
+						var west = latticeData[x, y];
+						var wester = latticeData[x - 1, y];
+						var westWall = latticeData[x, y, Direction.West];
+
+						output[x, y].Edges.West = west.PathGroup() == wester.PathGroup() && west.PathGroup() == westWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+					}
+
+					if (x + 1 == highX)
+					{
+						//on the east edge, it's a wall.
+						output[x, y].Edges.East = EdgeType.Wall;
+					}
+					else
+					{
+						var east = latticeData[x, y];
+						var easter = latticeData[x + 1, y];
+						var eastWall = latticeData[x, y, Direction.East];
+
+						output[x, y].Edges.East = east.PathGroup() == easter.PathGroup() && east.PathGroup() == eastWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+					}
+
+					if (y == lowY)
+					{
+						//on the South edge, it's a wall.
+						output[x, y].Edges.South = EdgeType.Wall;
+					}
+					else
+					{
+						var south = latticeData[x, y];
+						var souther = latticeData[x, y - 1];
+						var southWall = latticeData[x, y, Direction.South];
+
+						output[x, y].Edges.South = south.PathGroup() == souther.PathGroup() && south.PathGroup() == southWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+					}
+
+					if (y + 1 == highY)
+					{
+						//on the north edge, it's a wall.
+						output[x, y].Edges.North = EdgeType.Wall;
+					}
+					else
+					{
+						var north = latticeData[x, y];
+						var norther = latticeData[x, y + 1];
+						var northWall = latticeData[x, y, Direction.North];
+
+						output[x, y].Edges.North = north.PathGroup() == norther.PathGroup() && north.PathGroup() == northWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+					}
+				}
+			}
+
+			return output;
+		}
+
+
 		/// <summary>
 		/// Iterate over the entries in the array. For each entry, compare with neighbors
 		/// to create an array of RectNodes for futher processing. Data in [height, width] 
@@ -412,6 +514,53 @@ namespace RectifyUtils
 				Perimeter = perimeterList.ToList()
 
 			};
+		}
+
+		public static List<RectifyRectangle> MakeRectangles(GridLattice<IRectGrid> latticeData, Position minXY = null, Position maxXY = null)
+		{
+			var result = GetRectNodes(latticeData, minXY, maxXY);
+			var output = TraverseShapeOutlines(result);
+			var polygons = FindVertsFromEdges(output);
+
+			var subpolygons = new List<RectShape>();
+			foreach (var p in polygons)
+			{
+				subpolygons.AddRange(FirstLevelDecomposition(p));
+			}
+
+			var subsubPolygons = new List<RectShape>();
+			foreach (var sp in subpolygons)
+			{
+				subsubPolygons.AddRange(SecondLevelDecomposition(sp));
+			}
+
+			var rectangles = new List<RectifyRectangle>();
+			foreach (RectShape shape in subsubPolygons)
+			{
+				rectangles.Add(new RectifyRectangle(shape));
+			}
+
+			//Link Rectangles here.
+			foreach (RectifyRectangle linkRect in rectangles)
+			{
+				//left edge
+				var leftNeighbors = rectangles.FindAll(r => r.Right == linkRect.Left && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
+				linkRect.SetNeighbors(leftNeighbors, Direction.West);
+
+				//right edge
+				var rightNeighbors = rectangles.FindAll(r => r.Left == linkRect.Right && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
+				linkRect.SetNeighbors(rightNeighbors, Direction.East);
+
+				//top edge
+				var topNeighbors = rectangles.FindAll(r => r.Bottom == linkRect.Top && (linkRect.Left < r.Right && linkRect.Right > r.Left));
+				linkRect.SetNeighbors(topNeighbors, Direction.North);
+
+				//bottom edge
+				var bottomNeighbors = rectangles.FindAll(r => r.Top == linkRect.Bottom && (linkRect.Left < r.Right && linkRect.Right > r.Left));
+				linkRect.SetNeighbors(bottomNeighbors, Direction.South);
+			}
+
+			return rectangles;
 		}
 
 		public static List<RectifyRectangle> MakeRectangles(int[,] data, DataLayout dataLayout, Position minXY = null, Position maxXY = null, List<RectDetectPair> edgeOverrides = null)

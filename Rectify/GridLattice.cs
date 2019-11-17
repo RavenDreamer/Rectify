@@ -13,11 +13,48 @@ namespace RectifyUtils
 		int PathModifier();
 	}
 
+	public class RectGridCell : IRectGrid
+	{
+
+		int _PathGroup { get; set; }
+		int _PathModifier { get; set; }
+
+		public RectGridCell(int pathGroup, int pathModifier)
+		{
+			this._PathGroup = pathGroup;
+			this._PathModifier = pathModifier;
+		}
+
+
+		public int PathGroup()
+		{
+			return _PathGroup;
+		}
+
+		public int PathModifier()
+		{
+			return _PathModifier;
+		}
+	}
+
+
 	/// <summary>
-	/// A dense 1-d array that maps to an M by N grid w/ shared edge data.
+	/// A dense 1-d array that maps to an M by N grid w/ N.E.W.S. edge data for each cell.
 	/// </summary>
 	public class GridLattice<T>
 	{
+
+		/// <summary>
+		/// Returns a flat array containing all the elements contained in this GridLattice
+		/// </summary>
+		/// <returns></returns>
+		public T[] ToArray()
+		{
+			T[] outArray = new T[LatticeElements.Length];
+			Array.Copy(LatticeElements, outArray, LatticeElements.Length);
+			return outArray;
+		}
+
 		public int Width { get; private set; }
 		private int RowSize
 		{
@@ -32,6 +69,25 @@ namespace RectifyUtils
 		public int Count { get { return LatticeElements.Length; } }
 
 		private T[] LatticeElements { get; set; }
+
+		/// <summary>
+		/// Fills an instantiated GridLattice with the given elements. (e.g. use when unserializing) 
+		/// Throws an error if the arrayLength does not match. 
+		/// </summary>
+		/// <param name="elements"></param>
+		public GridLattice<T> ReplaceElements(T[] contents)
+		{
+			if (contents.Length != LatticeElements.Length)
+			{
+				throw new IndexOutOfRangeException("Expected array of " + LatticeElements.Length + " but received array of " + contents.Length);
+			}
+			else
+			{
+				Array.Copy(contents, LatticeElements, LatticeElements.Length);
+			}
+
+			return this;
+		}
 
 		/// <summary>
 		/// Instantiates a square GridLattice with the given height & width
@@ -81,32 +137,13 @@ namespace RectifyUtils
 		}
 
 		/// <summary>
-		/// Returns the LatticeElement in the cell at xIndex, yIndex
-		/// </summary>
-		/// <param name="xIndex"></param>
-		/// <param name="yIndex"></param>
-		/// <returns></returns>
-		public T this[int xIndex, int yIndex]
-		{
-			get
-			{
-
-				return LatticeElements[GetCellOffset(xIndex, yIndex)];
-			}
-			set
-			{
-				LatticeElements[GetCellOffset(xIndex, yIndex)] = value;
-			}
-		}
-
-		/// <summary>
 		/// Returns the LatticeElement along the "dir" edge of the cell at xIndex, yIndex
 		/// </summary>
 		/// <param name="xIndex"></param>
 		/// <param name="yIndex"></param>
 		/// <param name="dir"></param>
 		/// <returns></returns>
-		public T this[int xIndex, int yIndex, Direction dir]
+		public T this[int xIndex, int yIndex, Direction dir = Direction.Center]
 		{
 			get
 			{
@@ -116,6 +153,8 @@ namespace RectifyUtils
 				switch (dir)
 				{
 					//these are the easy ones
+					case Direction.Center:
+						return LatticeElements[CellOffset];
 					case Direction.East:
 						return LatticeElements[CellOffset + 1];
 					case Direction.West:
@@ -142,6 +181,9 @@ namespace RectifyUtils
 				switch (dir)
 				{
 					//these are the easy ones
+					case Direction.Center:
+						LatticeElements[CellOffset] = value;
+						break;
 					case Direction.East:
 						LatticeElements[CellOffset + 1] = value;
 						break;

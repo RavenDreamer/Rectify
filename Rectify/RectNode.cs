@@ -16,6 +16,9 @@ namespace RectifyUtils
 		Unknown = 8,
 	}
 
+	/// <summary>
+	/// Data Layout for a [,] in memory
+	/// </summary>
 	public enum DataLayout
 	{
 		CodeInitializedArray, //you initialized a 2d array in code, but want the visual bottom left value to be @ 0,0
@@ -37,6 +40,7 @@ namespace RectifyUtils
 		West = 2,
 		North = 3, //Potential TODO: make these 1,2,4,8, once it stops breaking the tests and add "Unknown - 0" ?
 		Unknown = -1,
+		Center = -2,
 	}
 
 	/// <summary>
@@ -1048,7 +1052,7 @@ namespace RectifyUtils
 		}
 	}
 
-
+	[Serializable]
 	/// <summary>
 	/// An immutable type that holds 2 integer values
 	/// </summary>
