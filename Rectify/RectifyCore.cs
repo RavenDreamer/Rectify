@@ -379,6 +379,11 @@ namespace RectifyUtils
 						retShapes.Add(parentRegion, foundShape);
 						parentRegion++;
 					}
+					//Because we check via southedges, it's possible there's a 1d vertical edge to find.
+					//else if()
+					//{
+
+					//}
 					//now that we've added the shape, check to see if there's a hole as well.
 					//there's a hole if the y node has a north border. (Since we're going bottom to top, that would be impossible UNLESS we're in a hole
 					if (h < maxHeight) //but we can skip the last row, ofcourse.
@@ -2746,6 +2751,11 @@ namespace RectifyUtils
 							directionOffset = new Position(0, 0);
 							edgeDirection = Direction.East;
 							break;
+						//reverse direction
+						case Direction.West:
+							directionOffset = new Position(0, 1);
+							edgeDirection = Direction.South;
+							break;
 						default:
 							throw new Exception("Bad direction with current heading");
 					}
@@ -2765,6 +2775,11 @@ namespace RectifyUtils
 						case Direction.West:
 							directionOffset = new Position(0, 0);
 							edgeDirection = Direction.South;
+							break;
+						//reverse direction
+						case Direction.North:
+							directionOffset = new Position(1, 0);
+							edgeDirection = Direction.West;
 							break;
 						default:
 							throw new Exception("Bad direction with current heading");
@@ -2786,6 +2801,11 @@ namespace RectifyUtils
 							directionOffset = new Position(0, 0);
 							edgeDirection = Direction.West;
 							break;
+						//reverse direction
+						case Direction.East:
+							directionOffset = new Position(0, -1);
+							edgeDirection = Direction.North;
+							break;
 						default:
 							throw new Exception("Bad direction with current heading");
 					}
@@ -2805,6 +2825,11 @@ namespace RectifyUtils
 						case Direction.East:
 							directionOffset = new Position(0, 0);
 							edgeDirection = Direction.North;
+							break;
+						//reverse direction
+						case Direction.South:
+							directionOffset = new Position(-1, 0);
+							edgeDirection = Direction.East;
 							break;
 						default:
 							throw new Exception("Bad direction with current heading");
@@ -2947,6 +2972,9 @@ namespace RectifyUtils
 						outVectors.Add(Direction.North);
 					}
 
+					//we can always reverse if we're on a 1d edge.
+					outVectors.Add(Direction.West);
+
 					break;
 				case Direction.South:
 					//South looks West (convex), South, East (concave)
@@ -2963,6 +2991,8 @@ namespace RectifyUtils
 					{
 						outVectors.Add(Direction.East);
 					}
+					//we can always reverse if we're on a 1d edge.
+					outVectors.Add(Direction.North);
 
 					break;
 				case Direction.West:
@@ -2980,6 +3010,8 @@ namespace RectifyUtils
 					{
 						outVectors.Add(Direction.South);
 					}
+					//we can always reverse if we're on a 1d edge.
+					outVectors.Add(Direction.East);
 
 					break;
 				case Direction.North:
@@ -2997,6 +3029,8 @@ namespace RectifyUtils
 					{
 						outVectors.Add(Direction.West);
 					}
+					//we can always reverse if we're on a 1d edge.
+					outVectors.Add(Direction.South);
 
 					break;
 				default:

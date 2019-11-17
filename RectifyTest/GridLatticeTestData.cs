@@ -43,12 +43,22 @@ namespace RectifyTest
 			return data;
 		}
 
-		public static GridLattice<IRectGrid> SingleEdgeGridLattice()
+		public static GridLattice<IRectGrid> SingleVertEdgeGridLattice()
 		{
 			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(5);
 
 			InitGridLattice(data);
 			data[2, 2, Direction.West] = new RectGridCell(1, 1);
+
+			return data;
+		}
+
+		public static GridLattice<IRectGrid> SingleHorizEdgeGridLattice()
+		{
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(5);
+
+			InitGridLattice(data);
+			data[2, 2, Direction.South] = new RectGridCell(1, 1);
 
 			return data;
 		}
