@@ -817,10 +817,10 @@ namespace RectifyTest
 			//Assert.AreEqual(5, result2.Count, "Didn't get the 5 Rectangles expected");
 
 			List<RectifyRectangle> result3 = Rectify.MakeRectangles(GridLatticeTestData.SingleHorizEdgeGridLattice());
-			Assert.AreEqual(4, result3.Count, "Didn't get the 4 Rectangles expected");
+			Assert.AreEqual(5, result3.Count, "Didn't get the 5 Rectangles expected");
 
 			List<RectifyRectangle> result4 = Rectify.MakeRectangles(GridLatticeTestData.SingleVertEdgeGridLattice());
-			Assert.AreEqual(4, result4.Count, "Didn't get the 4 Rectangles expected");
+			Assert.AreEqual(5, result4.Count, "Didn't get the 5 Rectangles expected");
 		}
 
 

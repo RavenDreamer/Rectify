@@ -36,77 +36,74 @@ namespace RectifyUtils
 				highY = targetmaxXY.yPos;
 			}
 
-			RectNode[,] output = new RectNode[highX - lowX, highY - lowY];
+			//output grid size is multiple of 3 to give extra dimension to otherwise 2d edges, which *really* confound the algorithms.
+			int[,] output = new int[3 * (highX - lowX), 3 * (highY - lowY)];
 
 			for (int x = lowX; x < highX; x++)
 			{
+				int bigX = 3 * x;
 				for (int y = lowY; y < highY; y++)
 				{
-					output[x, y] = new RectNode();
+					int bigY = 3 * y;
 
-					//this is not optimised for the shared walls, but since RectNode keeps shared edges separate, is a necessary evil.
+					//start by initializing to the main square
+					var centerPath = latticeData[x, y].PathGroup();
 
-					//two cases for walls -- the wall is a different path group than its neighboring cells, or there is only one neighbor (aka, we're on the edge)
+					output[bigX, bigY] = centerPath;
+					output[bigX + 1, bigY] = centerPath;
+					output[bigX + 2, bigY] = centerPath;
 
-					if (x == lowX)
+					output[bigX, bigY + 1] = centerPath;
+					output[bigX + 1, bigY + 1] = centerPath;
+					output[bigX + 2, bigY + 1] = centerPath;
+
+					output[bigX, bigY + 2] = centerPath;
+					output[bigX + 1, bigY + 2] = centerPath;
+					output[bigX + 2, bigY + 2] = centerPath;
+
+					//edges fill out the 3 squares along the 9 that corresponds to their direction.
+					//edges only fill out if different pathgroup from central (i.e. are actually walls) 
+					//pathmap / Rectangle count shoooould be accurate, if technically translated a bit?
+
+					var westPath = latticeData[x, y, Direction.West].PathGroup();
+
+					if (westPath != centerPath)
 					{
-						//on the west edge, it's a wall.
-						output[x, y].Edges.West = EdgeType.Wall;
-					}
-					else
-					{
-						var west = latticeData[x, y];
-						var wester = latticeData[x - 1, y];
-						var westWall = latticeData[x, y, Direction.West];
-
-						output[x, y].Edges.West = west.PathGroup() == wester.PathGroup() && west.PathGroup() == westWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
-					}
-
-					if (x + 1 == highX)
-					{
-						//on the east edge, it's a wall.
-						output[x, y].Edges.East = EdgeType.Wall;
-					}
-					else
-					{
-						var east = latticeData[x, y];
-						var easter = latticeData[x + 1, y];
-						var eastWall = latticeData[x, y, Direction.East];
-
-						output[x, y].Edges.East = east.PathGroup() == easter.PathGroup() && east.PathGroup() == eastWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+						output[bigX, bigY] = westPath;
+						output[bigX, bigY + 1] = westPath;
+						output[bigX, bigY + 2] = westPath;
 					}
 
-					if (y == lowY)
-					{
-						//on the South edge, it's a wall.
-						output[x, y].Edges.South = EdgeType.Wall;
-					}
-					else
-					{
-						var south = latticeData[x, y];
-						var souther = latticeData[x, y - 1];
-						var southWall = latticeData[x, y, Direction.South];
+					var eastPath = latticeData[x, y, Direction.East].PathGroup();
 
-						output[x, y].Edges.South = south.PathGroup() == souther.PathGroup() && south.PathGroup() == southWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+					if (eastPath != centerPath)
+					{
+						output[bigX + 2, bigY] = eastPath;
+						output[bigX + 2, bigY + 1] = eastPath;
+						output[bigX + 2, bigY + 2] = eastPath;
 					}
 
-					if (y + 1 == highY)
-					{
-						//on the north edge, it's a wall.
-						output[x, y].Edges.North = EdgeType.Wall;
-					}
-					else
-					{
-						var north = latticeData[x, y];
-						var norther = latticeData[x, y + 1];
-						var northWall = latticeData[x, y, Direction.North];
+					var southPath = latticeData[x, y, Direction.South].PathGroup();
 
-						output[x, y].Edges.North = north.PathGroup() == norther.PathGroup() && north.PathGroup() == northWall.PathGroup() ? EdgeType.None : EdgeType.Wall;
+					if (southPath != centerPath)
+					{
+						output[bigX, bigY] = southPath;
+						output[bigX + 1, bigY] = southPath;
+						output[bigX + 2, bigY] = southPath;
+					}
+
+					var northPath = latticeData[x, y, Direction.North].PathGroup();
+
+					if (northPath != centerPath)
+					{
+						output[bigX, bigY + 2] = northPath;
+						output[bigX + 1, bigY + 2] = northPath;
+						output[bigX + 2, bigY + 2] = northPath;
 					}
 				}
 			}
 
-			return output;
+			return GetRectNodes(output, DataLayout.Quadrant1);
 		}
 
 
@@ -539,10 +536,17 @@ namespace RectifyUtils
 				subsubPolygons.AddRange(SecondLevelDecomposition(sp));
 			}
 
-			var rectangles = new List<RectifyRectangle>();
+			var bigRectangles = new List<RectifyRectangle>();
 			foreach (RectShape shape in subsubPolygons)
 			{
-				rectangles.Add(new RectifyRectangle(shape));
+				bigRectangles.Add(new RectifyRectangle(shape));
+			}
+
+			//all rectangles are 3x too large.
+			var rectangles = new List<RectifyRectangle>();
+			foreach (RectifyRectangle shrinkRect in bigRectangles)
+			{
+				rectangles.Add(shrinkRect.Shrink());
 			}
 
 			//Link Rectangles here.
