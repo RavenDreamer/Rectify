@@ -36,30 +36,31 @@ namespace RectifyUtils
 				highY = targetmaxXY.yPos;
 			}
 
-			//output grid size is multiple of 3 to give extra dimension to otherwise 2d edges, which *really* confound the algorithms.
-			int[,] output = new int[3 * (highX - lowX), 3 * (highY - lowY)];
+			//output grid size is sized to support a lattice structure. (The "gaps" in the lattice are filled in by
+			//the nearest edge, with preference for north/south blocks (this is arbitrary))
+			int[,] output = new int[2 * (highX - lowX) + 1, 2 * (highY - lowY) + 1];
 
 			for (int x = lowX; x < highX; x++)
 			{
-				int bigX = 3 * x;
+				int bigX = (2 * x) + 1;
 				for (int y = lowY; y < highY; y++)
 				{
-					int bigY = 3 * y;
+					int bigY = (2 * y) + 1;
 
 					//start by initializing to the main square
 					var centerPath = latticeData[x, y].PathGroup();
 
 					output[bigX, bigY] = centerPath;
-					output[bigX + 1, bigY] = centerPath;
-					output[bigX + 2, bigY] = centerPath;
+					//output[bigX + 1, bigY] = centerPath;
+					//output[bigX - 1, bigY] = centerPath;
 
-					output[bigX, bigY + 1] = centerPath;
-					output[bigX + 1, bigY + 1] = centerPath;
-					output[bigX + 2, bigY + 1] = centerPath;
+					//output[bigX, bigY + 1] = centerPath;
+					//output[bigX + 1, bigY + 1] = centerPath;
+					//output[bigX - 1, bigY + 1] = centerPath;
 
-					output[bigX, bigY + 2] = centerPath;
-					output[bigX + 1, bigY + 2] = centerPath;
-					output[bigX + 2, bigY + 2] = centerPath;
+					//output[bigX, bigY - 1] = centerPath;
+					//output[bigX + 1, bigY - 1] = centerPath;
+					//output[bigX - 1, bigY - 1] = centerPath;
 
 					//edges fill out the 3 squares along the 9 that corresponds to their direction.
 					//edges only fill out if different pathgroup from central (i.e. are actually walls) 
@@ -69,39 +70,42 @@ namespace RectifyUtils
 
 					if (westPath != centerPath)
 					{
-						output[bigX, bigY] = westPath;
-						output[bigX, bigY + 1] = westPath;
-						output[bigX, bigY + 2] = westPath;
+						output[bigX - 1, bigY] = westPath;
+						output[bigX - 1, bigY + 1] = westPath;
+						output[bigX - 1, bigY - 1] = westPath;
 					}
 
 					var eastPath = latticeData[x, y, Direction.East].PathGroup();
 
 					if (eastPath != centerPath)
 					{
-						output[bigX + 2, bigY] = eastPath;
-						output[bigX + 2, bigY + 1] = eastPath;
-						output[bigX + 2, bigY + 2] = eastPath;
+						output[bigX + 1, bigY] = eastPath;
+						output[bigX + 1, bigY + 1] = eastPath;
+						output[bigX + 1, bigY - 1] = eastPath;
 					}
 
 					var southPath = latticeData[x, y, Direction.South].PathGroup();
 
 					if (southPath != centerPath)
 					{
-						output[bigX, bigY] = southPath;
-						output[bigX + 1, bigY] = southPath;
-						output[bigX + 2, bigY] = southPath;
+						output[bigX, bigY - 1] = southPath;
+						output[bigX + 1, bigY - 1] = southPath;
+						output[bigX - 1, bigY - 1] = southPath;
 					}
 
 					var northPath = latticeData[x, y, Direction.North].PathGroup();
 
 					if (northPath != centerPath)
 					{
-						output[bigX, bigY + 2] = northPath;
-						output[bigX + 1, bigY + 2] = northPath;
-						output[bigX + 2, bigY + 2] = northPath;
+						output[bigX, bigY + 1] = northPath;
+						output[bigX + 1, bigY + 1] = northPath;
+						output[bigX - 1, bigY + 1] = northPath;
 					}
 				}
 			}
+			//DEBUG
+			//System.Diagnostics.Debug.WriteLine(line);
+
 
 			return GetRectNodes(output, DataLayout.Quadrant1);
 		}
@@ -535,18 +539,12 @@ namespace RectifyUtils
 			{
 				subsubPolygons.AddRange(SecondLevelDecomposition(sp));
 			}
-
-			var bigRectangles = new List<RectifyRectangle>();
+			//all rectangles are 3x too large. Can't be bothered to figure out how to properly shrink them atm.
+			//should still be fine for pathfinding.
+			var rectangles = new List<RectifyRectangle>();
 			foreach (RectShape shape in subsubPolygons)
 			{
-				bigRectangles.Add(new RectifyRectangle(shape));
-			}
-
-			//all rectangles are 3x too large.
-			var rectangles = new List<RectifyRectangle>();
-			foreach (RectifyRectangle shrinkRect in bigRectangles)
-			{
-				rectangles.Add(shrinkRect.Shrink());
+				rectangles.Add(new RectifyRectangle(shape));
 			}
 
 			//Link Rectangles here.

@@ -637,63 +637,63 @@ namespace RectifyUtils
 			return myEdge;
 		}
 
-		/// <summary>
-		/// Collapses a Rectangle by a factor of 3. Used for grid lattice decomp.
-		/// </summary>
-		/// <param name="validate"></param>
-		/// <returns></returns>
-		internal RectifyRectangle Shrink(bool validate = true)
-		{
-			Position smallBotLeft = new Position(this.bottomLeft.xPos / 3, this.bottomLeft.yPos / 3);
-			//default to bottom left if height would be truncated
-			Position smallTopRight = new Position(this.Width >= 3 ? this.topRight.xPos / 3 : this.bottomLeft.xPos / 3,
-												 this.Height >= 3 ? this.topRight.yPos / 3 : this.bottomLeft.yPos / 3);
+		///// <summary>
+		///// Collapses a Rectangle by a factor of 3. Used for grid lattice decomp.
+		///// </summary>
+		///// <param name="validate"></param>
+		///// <returns></returns>
+		//internal RectifyRectangle Shrink(bool validate = false)
+		//{
+		//	Position smallBotLeft = new Position(this.bottomLeft.xPos / 3, this.bottomLeft.yPos / 3);
+		//	//default to bottom left if height would be truncated
+		//	Position smallTopRight = new Position(this.Width >= 3 ? this.topRight.xPos / 3 : this.bottomLeft.xPos / 3,
+		//										 this.Height >= 3 ? this.topRight.yPos / 3 : this.bottomLeft.yPos / 3);
 
-			RectNeighbor[] smallTop = new RectNeighbor[this.Width / 3];
-			RectNeighbor[] smallBot = new RectNeighbor[this.Width / 3];
+		//	RectNeighbor[] smallTop = new RectNeighbor[this.Width / 3];
+		//	RectNeighbor[] smallBot = new RectNeighbor[this.Width / 3];
 
-			RectNeighbor[] smallLeft = new RectNeighbor[this.Height / 3];
-			RectNeighbor[] smallRight = new RectNeighbor[this.Height / 3];
+		//	RectNeighbor[] smallLeft = new RectNeighbor[this.Height / 3];
+		//	RectNeighbor[] smallRight = new RectNeighbor[this.Height / 3];
 
-			//transfer RectNeighbor wall types
-			for (int i = 0; i < this.Width / 3; i++)
-			{
-				if (validate)
-				{
-					if (this.TopEdge[3 * i].EdgeType != this.TopEdge[(3 * i) + 1].EdgeType && this.TopEdge[3 * i].EdgeType != this.TopEdge[(3 * i) + 2].EdgeType)
-					{
-						throw new Exception("Data loss during shrink");
-					}
-					if (this.BottomEdge[3 * i].EdgeType != this.BottomEdge[(3 * i) + 1].EdgeType && this.BottomEdge[3 * i].EdgeType != this.BottomEdge[(3 * i) + 2].EdgeType)
-					{
-						throw new Exception("Data loss during shrink");
-					}
-				}
+		//	//transfer RectNeighbor wall types
+		//	for (int i = 0; i < this.Width / 3; i++)
+		//	{
+		//		if (validate)
+		//		{
+		//			if (this.TopEdge[3 * i].EdgeType != this.TopEdge[(3 * i) + 1].EdgeType && this.TopEdge[3 * i].EdgeType != this.TopEdge[(3 * i) + 2].EdgeType)
+		//			{
+		//				throw new Exception("Data loss during shrink");
+		//			}
+		//			if (this.BottomEdge[3 * i].EdgeType != this.BottomEdge[(3 * i) + 1].EdgeType && this.BottomEdge[3 * i].EdgeType != this.BottomEdge[(3 * i) + 2].EdgeType)
+		//			{
+		//				throw new Exception("Data loss during shrink");
+		//			}
+		//		}
 
-				smallTop[i] = this.TopEdge[3 * i];
-				smallBot[i] = this.BottomEdge[3 * i];
-			}
-			for (int i = 0; i < this.Height / 3; i++)
-			{
-				if (validate)
-				{
-					if (this.LeftEdge[3 * i].EdgeType != this.LeftEdge[(3 * i) + 1].EdgeType && this.LeftEdge[3 * i].EdgeType != this.LeftEdge[(3 * i) + 2].EdgeType)
-					{
-						throw new Exception("Data loss during shrink");
-					}
-					if (this.RightEdge[3 * i].EdgeType != this.RightEdge[(3 * i) + 1].EdgeType && this.RightEdge[3 * i].EdgeType != this.RightEdge[(3 * i) + 2].EdgeType)
-					{
-						throw new Exception("Data loss during shrink");
-					}
-				}
+		//		smallTop[i] = this.TopEdge[3 * i];
+		//		smallBot[i] = this.BottomEdge[3 * i];
+		//	}
+		//	for (int i = 0; i < this.Height / 3; i++)
+		//	{
+		//		if (validate)
+		//		{
+		//			if (this.LeftEdge[3 * i].EdgeType != this.LeftEdge[(3 * i) + 1].EdgeType && this.LeftEdge[3 * i].EdgeType != this.LeftEdge[(3 * i) + 2].EdgeType)
+		//			{
+		//				throw new Exception("Data loss during shrink");
+		//			}
+		//			if (this.RightEdge[3 * i].EdgeType != this.RightEdge[(3 * i) + 1].EdgeType && this.RightEdge[3 * i].EdgeType != this.RightEdge[(3 * i) + 2].EdgeType)
+		//			{
+		//				throw new Exception("Data loss during shrink");
+		//			}
+		//		}
 
-				smallLeft[i] = this.LeftEdge[3 * i];
-				smallRight[i] = this.RightEdge[3 * i];
-			}
+		//		smallLeft[i] = this.LeftEdge[3 * i];
+		//		smallRight[i] = this.RightEdge[3 * i];
+		//	}
 
-			return new RectifyRectangle(smallBotLeft, smallTopRight, smallLeft, smallRight, smallTop, smallBot);
+		//	return new RectifyRectangle(smallBotLeft, smallTopRight, smallLeft, smallRight, smallTop, smallBot);
 
-		}
+		//}
 
 
 		/// <summary>

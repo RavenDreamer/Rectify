@@ -587,6 +587,13 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
+		public void TorusTest()
+		{
+			var result = Rectify.MakeRectangles(TestData.TorusTest(), DataLayout.CodeInitializedArray);
+			Assert.AreEqual(9, result.Count, "did not make 9 total rectangles as expected");
+		}
+
+		[TestMethod]
 		public void MetoriteSiteTest()
 		{
 			var result = Rectify.GetRectNodes(TestData.MeteorStrike(), DataLayout.CodeInitializedArray);
@@ -810,15 +817,14 @@ namespace RectifyTest
 		[TestCategory("From GridLattice")]
 		public void RectNodesFromGridLatticeTest()
 		{
-			//List<RectifyRectangle> result = Rectify.MakeRectangles(GridLatticeTestData.EdgeTorusGridLattice());
-			//Assert.AreEqual(5, result.Count, "Didn't get the 5 Rectangles expected");
-
-			//List<RectifyRectangle> result2 = Rectify.MakeRectangles(GridLatticeTestData.CenterCellTorusGridLattice());
-			//Assert.AreEqual(5, result2.Count, "Didn't get the 5 Rectangles expected");
+			//These two cases result in very similar maps, but are distinct b/c of needing / not needing to deal with 1d segments.
+			List<RectifyRectangle> result = Rectify.MakeRectangles(GridLatticeTestData.EdgeTorusGridLattice());
+			Assert.AreEqual(9, result.Count, "Didn't get the 9 Rectangles expected");
+			List<RectifyRectangle> result2 = Rectify.MakeRectangles(GridLatticeTestData.CenterCellTorusGridLattice());
+			Assert.AreEqual(5, result2.Count, "Didn't get the 5 Rectangles expected");
 
 			List<RectifyRectangle> result3 = Rectify.MakeRectangles(GridLatticeTestData.SingleHorizEdgeGridLattice());
 			Assert.AreEqual(5, result3.Count, "Didn't get the 5 Rectangles expected");
-
 			List<RectifyRectangle> result4 = Rectify.MakeRectangles(GridLatticeTestData.SingleVertEdgeGridLattice());
 			Assert.AreEqual(5, result4.Count, "Didn't get the 5 Rectangles expected");
 		}
