@@ -169,7 +169,7 @@ namespace RectifyUtils
 					//for each cell, look at its neighbors
 					//this isn't maximally efficient, but suffices for testing for now
 					int dataCell = workingData[w, h];
-					RectNode rNode = new RectNode();
+					RectNode rNode = new RectNode(dataCell);
 
 					//west; if we're in-bounds and the westPeek is the same value, no wall
 					if (w > lowX && workingData[w - 1, h] == dataCell)
@@ -515,7 +515,7 @@ namespace RectifyUtils
 			workingEdge.Next = firstEdge; //cycle is complete
 
 			//and add shape to be returned
-			return new RectShape
+			return new RectShape(peekNode.PathGroup)
 			{
 				Perimeter = perimeterList.ToList()
 
@@ -1397,7 +1397,7 @@ namespace RectifyUtils
 				}
 
 #if debug
-				var outShape = FilloutVerts(new RectShape() { Perimeter = holePerimeter, Holes = newHoles });
+				var outShape = FilloutVerts(new RectShape(firstHole.PathGroup) { Perimeter = holePerimeter, Holes = newHoles });
 				if (Math.Abs(outShape.Vertices.FindAll(v => v.IsConcave).Count - outShape.Vertices.FindAll(v => v.IsConvex).Count) != 4)
 				{
 					Console.WriteLine("Huh");
@@ -1405,7 +1405,7 @@ namespace RectifyUtils
 				return outShape;
 #endif
 
-				return FilloutVerts(new RectShape() { Perimeter = holePerimeter, Holes = newHoles });
+				return FilloutVerts(new RectShape(firstHole.PathGroup) { Perimeter = holePerimeter, Holes = newHoles });
 			}
 			else
 			{
@@ -2244,7 +2244,7 @@ namespace RectifyUtils
 			List<RectShape> carriedHoles = TransferHoles(parentShape, edgeList: edges);
 
 #if debug
-			var retShape = FilloutVerts(new RectShape() { Perimeter = edges, Vertices = vertices, Holes = carriedHoles });
+			var retShape = FilloutVerts(new RectShape(parentShape.PathGroup) { Perimeter = edges, Vertices = vertices, Holes = carriedHoles });
 			if (Math.Abs(retShape.Vertices.FindAll(v => v.IsConcave).Count - retShape.Vertices.FindAll(v => v.IsConvex).Count) != 4)
 			{
 				Console.WriteLine("Huh");
@@ -2252,7 +2252,7 @@ namespace RectifyUtils
 			return retShape;
 #endif
 
-			return FilloutVerts(new RectShape() { Perimeter = edges, Vertices = vertices, Holes = carriedHoles });
+			return FilloutVerts(new RectShape(parentShape.PathGroup) { Perimeter = edges, Vertices = vertices, Holes = carriedHoles });
 		}
 		/// <summary>
 		/// Tests whether the vertex formed between the two headings is convex or the same direction.

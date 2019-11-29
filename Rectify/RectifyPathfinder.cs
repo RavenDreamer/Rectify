@@ -161,6 +161,214 @@ namespace RectifyUtils
 			}
 		}
 
+		/// <summary>
+		/// Changes the pathgroup at the given Position, splitting one rectangle into 3-5
+		/// Clears the cache of any paths using the old rectangle, and sets a dirty flag on the pathfinder.
+		/// </summary>
+		/// <param name="position"></param>
+		/// <param name="v"></param>
+		public void ReplaceCellAt(Position position, int pathGroup)
+		{
+			//find the rectangle that contains this position.
+			var containingRect = FindRectangleAroundPoint(position);
+			var ogPathGroup = containingRect.PathGroup;
+
+			//no change
+			if (ogPathGroup == pathGroup) return;
+
+			IsDirty = true;
+
+			//if it's a 1x1 rectangle, we don't need to do anything other than update the pathGroup / BaseCost
+			//if (containingRect.Width == 1 && containingRect.Height == 1)
+			//{
+			//	containingRect.BaseCost = BaseCost;
+			//	containingRect.PathGroup = pathGroup;
+			//	//TODO: update cache etc.
+			//	return;
+			//}
+
+			var offsetVector = position - containingRect.Offset;
+
+			//in all other cases, 3 steps:
+			//1. Create a new Rectify Rectangle to be the center cell
+			RectifyRectangle centerCell = new RectifyRectangle(position, new Position(position.xPos + 1, position.yPos + 1),
+																new RectNeighbor[1], new RectNeighbor[1], new RectNeighbor[1], new RectNeighbor[1], pathGroup);
+			//2. create top & bottom rectangles (these are the narrow ones, going straight up/down but picked arbitrarily)
+			RectifyRectangle topRect = null, botRect = null;
+			if (containingRect.Height - offsetVector.yPos - 1 > 0)
+			{
+				int topHeight = containingRect.Top - offsetVector.yPos - 1;
+				topRect = new RectifyRectangle(new Position(position.xPos, position.yPos + 1), new Position(position.xPos + 1, position.yPos + topHeight + 1),
+												new RectNeighbor[topHeight], new RectNeighbor[topHeight], new RectNeighbor[1], new RectNeighbor[1], ogPathGroup);
+			}
+			if (offsetVector.yPos != 0)
+			{
+				int botHeight = offsetVector.yPos - containingRect.Bottom;
+				botRect = new RectifyRectangle(new Position(position.xPos, containingRect.Bottom), new Position(position.xPos + 1, position.yPos),
+												new RectNeighbor[botHeight], new RectNeighbor[botHeight], new RectNeighbor[1], new RectNeighbor[1], ogPathGroup);
+			}
+			//3. create left & right rectangles
+			RectifyRectangle leftRect = null, rightRect = null;
+			if (offsetVector.xPos != 0)
+			{
+				int leftWidth = offsetVector.xPos - containingRect.Left;
+				leftRect = new RectifyRectangle(new Position(containingRect.Left, containingRect.Bottom), new Position(containingRect.Left + offsetVector.xPos, containingRect.Top),
+												new RectNeighbor[containingRect.Height], new RectNeighbor[containingRect.Height], new RectNeighbor[leftWidth], new RectNeighbor[leftWidth], ogPathGroup);
+			}
+			if (containingRect.Width - offsetVector.xPos - 1 > 0)
+			{
+				int rightWidth = containingRect.Right - offsetVector.xPos - 1;
+				rightRect = new RectifyRectangle(new Position(position.xPos + 1, containingRect.Bottom), new Position(containingRect.Right, containingRect.Top),
+												new RectNeighbor[containingRect.Height], new RectNeighbor[containingRect.Height], new RectNeighbor[rightWidth], new RectNeighbor[rightWidth], ogPathGroup);
+			}
+
+
+			List<RectifyRectangle> newRects = new List<RectifyRectangle>() { centerCell };
+			if (topRect != null) newRects.Add(topRect);
+			if (botRect != null) newRects.Add(botRect);
+			if (leftRect != null) newRects.Add(leftRect);
+			if (rightRect != null) newRects.Add(rightRect);
+
+			//now link the rectangles with any neighbors of the parent;
+			List<RectifyRectangle> parentNeighbors = containingRect.AllNeighbors;
+			parentNeighbors.AddRange(newRects);
+
+			//Link Rectangles here.
+			foreach (RectifyRectangle linkRect in newRects)
+			{
+				//left edge
+				var leftNeighbors = parentNeighbors.FindAll(r => r.Right == linkRect.Left && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
+				linkRect.SetNeighbors(leftNeighbors, Direction.West);
+
+				//right edge
+				var rightNeighbors = parentNeighbors.FindAll(r => r.Left == linkRect.Right && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
+				linkRect.SetNeighbors(rightNeighbors, Direction.East);
+
+				//top edge
+				var topNeighbors = parentNeighbors.FindAll(r => r.Bottom == linkRect.Top && (linkRect.Left < r.Right && linkRect.Right > r.Left));
+				linkRect.SetNeighbors(topNeighbors, Direction.North);
+
+				//bottom edge
+				var bottomNeighbors = parentNeighbors.FindAll(r => r.Top == linkRect.Bottom && (linkRect.Left < r.Right && linkRect.Right > r.Left));
+				linkRect.SetNeighbors(bottomNeighbors, Direction.South);
+			}
+
+			//finally, set the edges on the center cell (and surrounding cells) to be wall-type. (If they weren't, we wouldn't have called this method!)
+			centerCell.LeftEdge[0].EdgeType = EdgeType.Wall;
+			if (leftRect != null)
+			{
+				//rectangle was split, so this is definitely a wall
+				leftRect.RightEdge[offsetVector.yPos].EdgeType = EdgeType.Wall;
+			}
+			else
+			{
+				//find by point search
+				var tempLeft = FindRectangleAroundPoint(new Position(position.xPos - 1, position.yPos), true);
+				if (tempLeft != null)
+				{
+					var leftOffsetVector = position - tempLeft.Offset;
+					tempLeft.RightEdge[leftOffsetVector.yPos].EdgeType = tempLeft.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+					tempLeft.RightEdge[leftOffsetVector.yPos].Neighbor = centerCell;
+					centerCell.LeftEdge[0].EdgeType = tempLeft.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+					//centerCell.LeftEdge[0].Neighbor = tempLeft;
+				}
+
+			}
+
+			centerCell.RightEdge[0].EdgeType = EdgeType.Wall;
+			if (rightRect != null)
+			{
+				rightRect.LeftEdge[offsetVector.yPos].EdgeType = EdgeType.Wall;
+
+			}
+			else
+			{
+				//find by point search
+				var tempRight = FindRectangleAroundPoint(new Position(position.xPos + 1, position.yPos), true);
+				if (tempRight != null)
+				{
+					var rightOffsetVector = position - tempRight.Offset;
+					tempRight.LeftEdge[rightOffsetVector.yPos].EdgeType = tempRight.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+					tempRight.LeftEdge[rightOffsetVector.yPos].Neighbor = centerCell;
+					centerCell.RightEdge[0].EdgeType = tempRight.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				}
+			}
+
+			centerCell.TopEdge[0].EdgeType = EdgeType.Wall;
+			if (topRect != null)
+			{
+
+				topRect.BottomEdge[0].EdgeType = EdgeType.Wall;
+			}
+			else
+			{
+				//find by point search
+				var tempTop = FindRectangleAroundPoint(new Position(position.xPos, position.yPos + 1), true);
+				if (tempTop != null)
+				{
+					var topOffsetVector = position - tempTop.Offset;
+					tempTop.BottomEdge[topOffsetVector.xPos].EdgeType = tempTop.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+					tempTop.BottomEdge[topOffsetVector.xPos].Neighbor = centerCell;
+					centerCell.TopEdge[0].EdgeType = tempTop.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				}
+			}
+			centerCell.BottomEdge[0].EdgeType = EdgeType.Wall;
+			if (botRect != null)
+			{
+
+				botRect.TopEdge[0].EdgeType = EdgeType.Wall;
+			}
+			else
+			{
+				//find by point search
+				var tempBot = FindRectangleAroundPoint(new Position(position.xPos, position.yPos - 1), true);
+				if (tempBot != null)
+				{
+					var botOffsetVector = position - tempBot.Offset;
+					tempBot.TopEdge[botOffsetVector.xPos].EdgeType = tempBot.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+					tempBot.TopEdge[botOffsetVector.xPos].Neighbor = centerCell;
+					centerCell.BottomEdge[0].EdgeType = tempBot.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				}
+			}
+
+			this.RectNodes.Remove(containingRect);
+			this.RectNodes.AddRange(newRects);
+
+		}
+
+		/// <summary>
+		/// Used for lattice Pathfinders. 2x+1,2y+1 is the base cell, then adjust accordingly.
+		/// </summary>
+		/// <param name="position"></param>
+		/// <param name="edgeDirection"></param>
+		/// <param name="pathGroup"></param>
+		public void ReplaceCellAt(Position position, Direction edgeDirection, int pathGroup)
+		{
+			int newX = position.xPos * 2 + 1;
+			int newY = position.yPos * 2 + 1;
+			switch (edgeDirection)
+			{
+				case Direction.East:
+					newX++;
+					break;
+				case Direction.South:
+					newY--;
+					break;
+				case Direction.West:
+					newX--;
+					break;
+				case Direction.North:
+					newY++;
+					break;
+				case Direction.Center:
+					break;
+				default:
+					throw new Exception("Direction unaccounted for");
+			}
+
+			ReplaceCellAt(new Position(newX, newY), pathGroup);
+		}
+
 		public class PathfinderMetrics
 		{
 			public int FrontierSize { get; set; }
@@ -225,13 +433,24 @@ namespace RectifyUtils
 
 
 		private List<RectifyRectangle> RectNodes { get; set; }
+		public object NodeCount
+		{
+			get
+			{
+				return RectNodes.Count;
+			}
+		}
+
 		private readonly List<PathQuery> pathCache = new List<PathQuery>();
 		private readonly int pathCacheSize = 0;
+		public bool IsDirty { get; private set; }
+		public bool IsLattice { get; private set; }
 
-		public RectifyPathfinder(List<RectifyRectangle> rectNodes, int pathCacheSize = 20)
+		public RectifyPathfinder(List<RectifyRectangle> rectNodes, bool isLattice, int pathCacheSize = 20)
 		{
 			this.RectNodes = rectNodes;
 			this.pathCacheSize = pathCacheSize;
+			this.IsLattice = isLattice;
 		}
 
 
@@ -293,8 +512,21 @@ namespace RectifyUtils
 		}
 
 
-		private List<Position> CalculatePath(Position startPosition, Position endPosition, int flagsMask = (int)EdgeType.None, PathfinderMetrics metrics = null)
+		private List<Position> CalculatePath(Position initialPosition, Position finalPosition, int flagsMask = (int)EdgeType.None, PathfinderMetrics metrics = null)
 		{
+			Position startPosition, endPosition;
+			if (IsLattice)
+			{
+				//multiply by 2x+1
+				startPosition = new Position(2 * initialPosition.xPos + 1, 2 * initialPosition.yPos + 1);
+				endPosition = new Position(2 * finalPosition.xPos + 1, 2 * finalPosition.yPos + 1);
+			}
+			else
+			{
+				startPosition = initialPosition;
+				endPosition = finalPosition;
+			}
+
 			//get valid edgetypes from the mask
 			HashSet<EdgeType> edgeTypesFromMask = new HashSet<EdgeType>();
 			foreach (EdgeType et in Enum.GetValues(typeof(EdgeType)))
@@ -337,7 +569,7 @@ namespace RectifyUtils
 					metrics.VisitedNodes = 0;
 				}
 
-				return path;
+				return IsLattice ? TranslatePath(path) : path;
 			}
 			else
 			{
@@ -383,9 +615,29 @@ namespace RectifyUtils
 					metrics.VisitedNodes = visitedNodeCount;
 				}
 
-				return path;
+				return IsLattice ? TranslatePath(path) : path;
 			}
 
+		}
+
+		/// <summary>
+		/// reduce each value by 1, then halve.
+		/// </summary>
+		/// <param name="path"></param>
+		/// <returns></returns>
+		private List<Position> TranslatePath(List<Position> path)
+		{
+			List<Position> translatedPath = new List<Position>();
+			foreach (Position p in path)
+			{
+				//these points don't reflect traversable nodes
+				if (p.xPos % 2 == 0 || p.yPos % 2 == 0) continue;
+
+				var newPos = new Position((p.xPos - 1) / 2, (p.yPos - 1) / 2);
+				translatedPath.Add(newPos);
+			}
+
+			return translatedPath;
 		}
 
 		/// <summary>
@@ -563,6 +815,8 @@ namespace RectifyUtils
 				var workingNeighbor = neighborsToAdd[0];
 				neighborsToAdd.RemoveAt(0);
 				foundNeighbors.Add(workingNeighbor);
+
+				if (workingNeighbor == endRect) return true;
 
 				var neighborNeighbors = GetNeighborsSimple(workingNeighbor, edgeTypesFromMask);
 
@@ -1135,12 +1389,14 @@ namespace RectifyUtils
 		//	return outList;
 		//}
 
-		private RectifyRectangle FindRectangleAroundPoint(Position position)
+		private RectifyRectangle FindRectangleAroundPoint(Position position, bool allowNull = false)
 		{
 			foreach (RectifyRectangle rr in RectNodes)
 			{
 				if (rr.ContainsPoint(position, .5f)) return rr;
 			}
+
+			if (allowNull) return null;
 
 			throw new PathOutOfBoundsException("Position: " + position.ToString() + "was not within this pathfinder's rect nodes");
 		}

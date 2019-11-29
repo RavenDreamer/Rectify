@@ -80,6 +80,12 @@ namespace RectifyUtils
 			public EdgeType East { get; set; }
 		}
 
+		public int PathGroup { get; private set; }
+
+		public RectNode(int pathGroup)
+		{
+			this.PathGroup = pathGroup;
+		}
 
 		/// <summary>
 		/// Identifies this Node as a member of a particular region (shape).
@@ -221,6 +227,11 @@ namespace RectifyUtils
 	public class RectShape
 	{
 
+		public RectShape(int pathGroup)
+		{
+			this.PathGroup = pathGroup;
+		}
+
 		public List<RectEdge> Perimeter { get; set; } = new List<RectEdge>();
 
 		private List<Vertex> _vertices = new List<Vertex>();
@@ -261,6 +272,8 @@ namespace RectifyUtils
 			}
 		}
 		public List<Vertex> HoleVertices { get; private set; } = new List<Vertex>(); //this should be immutable as above. it could be modified currently, but never SHOULD be outside this class.
+
+		public int PathGroup { get; internal set; }
 
 		internal void AddHole(RectShape foundHole)
 		{
@@ -370,16 +383,9 @@ namespace RectifyUtils
 		//	public int HighRangeCoordinate { get; set; }
 		//}
 
+		internal int PathGroup { get; private set; }
 
-
-		internal RectNeighbor[] LeftEdge;
-		internal RectNeighbor[] RightEdge;
-		internal RectNeighbor[] TopEdge;
-		internal RectNeighbor[] BottomEdge;
-
-		//private HashSet<RectNeighbor> neighbors = new HashSet<RectNeighbor>();
-
-		public int NeighborCount
+		public List<RectifyRectangle> AllNeighbors
 		{
 			get
 			{
@@ -405,16 +411,31 @@ namespace RectifyUtils
 					uniqueNeighbors.Add(rn.Neighbor);
 				}
 
-				return uniqueNeighbors.Count;
+				return uniqueNeighbors.ToList();
+			}
+		}
+
+		internal RectNeighbor[] LeftEdge;
+		internal RectNeighbor[] RightEdge;
+		internal RectNeighbor[] TopEdge;
+		internal RectNeighbor[] BottomEdge;
+
+		//private HashSet<RectNeighbor> neighbors = new HashSet<RectNeighbor>();
+
+		public int NeighborCount
+		{
+			get
+			{
+				return AllNeighbors.Count;
 			}
 		}
 
 		private readonly Position topRight;
 		private readonly Position bottomLeft;
 
-		private RectifyRectangle(Position bottomLeft, Position topRight,
+		internal RectifyRectangle(Position bottomLeft, Position topRight,
 			RectNeighbor[] LeftEdge, RectNeighbor[] RightEdge,
-			RectNeighbor[] TopEdge, RectNeighbor[] BottomEdge)
+			RectNeighbor[] TopEdge, RectNeighbor[] BottomEdge, int pathGroup)
 		{
 			this.bottomLeft = bottomLeft;
 			this.topRight = topRight;
@@ -422,6 +443,24 @@ namespace RectifyUtils
 			this.RightEdge = RightEdge;
 			this.TopEdge = TopEdge;
 			this.BottomEdge = BottomEdge;
+			this.PathGroup = pathGroup;
+
+			//instantiate the edgearrays
+
+			//get all the edges w/ firstPosition x == topLeft.x && secondPosition x == topLeft.x
+
+			for (int i = 0; i < LeftEdge.Length; i++)
+			{
+				LeftEdge[i] = new RectNeighbor(null, EdgeType.None);
+				RightEdge[i] = new RectNeighbor(null, EdgeType.None);
+			}
+
+			for (int i = 0; i < TopEdge.Length; i++)
+			{
+				TopEdge[i] = new RectNeighbor(null, EdgeType.None);
+				BottomEdge[i] = new RectNeighbor(null, EdgeType.None);
+			}
+
 		}
 
 		public RectifyRectangle(RectShape shape, bool validateRectangle = true)
@@ -443,6 +482,7 @@ namespace RectifyUtils
 					throw new Exception("Rectangle w/o contiguous perimeter");
 				}
 			}
+			this.PathGroup = shape.PathGroup;
 			//get the defining positions from the verts
 			//temporary assignment
 			topRight = shape.Vertices.First().VertPosition;
