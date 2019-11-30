@@ -194,13 +194,11 @@ namespace RectifyTest
 			Assert.AreEqual(5, pathfinder.NodeCount, "Did not get the 5 total rectangles expected");
 
 
-			//need to change rects for ALL the virtual rects, since only changing one won't affect
-			//the potentially 3 wide virtual cell.
 			resultPath = pathfinder.CalculatePath(new Position(2, 2), new Position(2, 3));
-			Assert.AreEqual(1, resultPath.Count, "did not find a path when expected");
+			Assert.AreEqual(0, resultPath.Count, "did not find a path when expected");
 
 			resultPath = pathfinder.CalculatePath(new Position(2, 2), new Position(2, 1));
-			Assert.AreEqual(0, resultPath.Count, "found a path when none expected");
+			Assert.AreEqual(2, resultPath.Count, "found a path when none expected");
 
 
 			resultPath = pathfinder.CalculatePath(new Position(1, 2), new Position(2, 2));

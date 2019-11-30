@@ -348,6 +348,11 @@ namespace RectifyUtils
 			int newY = position.yPos * 2 + 1;
 			switch (edgeDirection)
 			{
+				//simple case -- just do the regular version of this with the
+				//translated coords.
+				case Direction.Center:
+					ReplaceCellAt(new Position(newX, newY), pathGroup);
+					return;
 				case Direction.East:
 					newX++;
 					break;
@@ -360,13 +365,37 @@ namespace RectifyUtils
 				case Direction.North:
 					newY++;
 					break;
-				case Direction.Center:
-					break;
+
 				default:
 					throw new Exception("Direction unaccounted for");
 			}
+			//The below may or may not be needed
+
+			////more complicated case: run this on 1, 2 or 3 nodes.
+			////first look up which node is *always* relevant. (the cardinal ones)
+			////then include any associated corners with the same parentRect;
+			////send that LIST to be converted into a new rectangle.
+			//Position rectLow, rectHigh;
+			//RectifyRectangle baseRect = FindRectangleAroundPoint(new Position(newX, newY));
+			//// Y+-1
+			//if (edgeDirection == Direction.West || edgeDirection == Direction.East)
+			//{
+			//	rectHigh = FindRectangleAroundPoint(new Position(newX, newY + 1)) == baseRect ? new Position(newX, newY + 1) : new Position(newX, newY);
+			//	rectLow = FindRectangleAroundPoint(new Position(newX, newY - 1)) == baseRect ? new Position(newX, newY - 1) : new Position(newX, newY);
+			//}
+			//// X+-1
+			//else
+			//{
+			//	rectHigh = FindRectangleAroundPoint(new Position(newX + 1, newY)) == baseRect ? new Position(newX + 1, newY) : new Position(newX, newY);
+			//	rectLow = FindRectangleAroundPoint(new Position(newX - 1, newY)) == baseRect ? new Position(newX - 1, newY) : new Position(newX, newY);
+			//}
 
 			ReplaceCellAt(new Position(newX, newY), pathGroup);
+		}
+
+		private void ReplaceCellAt(Position rectLow, Position rectHigh, int pathGroup)
+		{
+			throw new NotImplementedException();
 		}
 
 		public class PathfinderMetrics
