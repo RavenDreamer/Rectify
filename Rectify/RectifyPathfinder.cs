@@ -484,17 +484,98 @@ namespace RectifyUtils
 
 
 		/// <summary>
-		/// Returns the topleft & bottomright positions of the rectify rect that encapsulates this point.
+		/// Returns the bottomLeft & topRight positions of the rectify rect that encapsulates this point.
 		/// </summary>
 		/// <param name="p"></param>
 		/// <returns></returns>
 		public Tuple<Position, Position> GetRectBordersFromPoint(Position p)
 		{
-			foreach (RectifyRectangle rr in RectNodes)
+			if (IsLattice)
 			{
-				if (rr.ContainsPoint(p, .5f))
+				//multiply starting position
+				Position truePosition = new Position(p.xPos * 2 + 1, p.yPos * 2 + 1);
+				int lowX = p.xPos;
+				int highX = p.xPos;
+				int lowY = p.yPos;
+				int highY = p.yPos;
+
+				RectifyRectangle startRect = null;
+
+				foreach (RectifyRectangle rr in RectNodes)
 				{
-					return new Tuple<Position, Position>(new Position(rr.Left, rr.Top), new Position(rr.Right, rr.Bottom));
+					if (rr.ContainsPoint(truePosition, .5f))
+					{
+						startRect = rr;
+						break;
+					}
+				}
+
+				//look in the 4 cardinal directions until we find something that's not startRect;
+				RectifyRectangle northLook = FindRectangleAroundPoint(new Position(2 * p.xPos + 1, 2 * (highY + 1) + 1), true);
+				while (northLook != null)
+				{
+					if (northLook == startRect)
+					{
+						highY++;
+						northLook = FindRectangleAroundPoint(new Position(2 * p.xPos + 1, 2 * (highY + 1) + 1), true);
+					}
+					else
+					{
+						break;
+					}
+				}
+				RectifyRectangle southLook = FindRectangleAroundPoint(new Position(2 * p.xPos + 1, 2 * (lowY - 1) + 1), true);
+				while (southLook != null)
+				{
+					if (southLook == startRect)
+					{
+						lowY--;
+						southLook = FindRectangleAroundPoint(new Position(2 * p.xPos + 1, 2 * (lowY - 1) + 1), true);
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				RectifyRectangle westLook = FindRectangleAroundPoint(new Position(2 * (lowX - 1) + 1, 2 * p.yPos + 1), true);
+				while (westLook != null)
+				{
+					if (westLook == startRect)
+					{
+						lowX--;
+						westLook = FindRectangleAroundPoint(new Position(2 * (lowX - 1) + 1, 2 * p.yPos + 1), true);
+					}
+					else
+					{
+						break;
+					}
+				}
+				RectifyRectangle eastLook = FindRectangleAroundPoint(new Position(2 * (highX + 1) + 1, 2 * p.yPos + 1), true);
+				while (eastLook != null)
+				{
+					if (eastLook == startRect)
+					{
+						highX++;
+						eastLook = FindRectangleAroundPoint(new Position(2 * (highX + 1) + 1, 2 * p.yPos + 1), true);
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				return new Tuple<Position, Position>(new Position(lowX, lowY), new Position(highX + 1, highY + 1));
+
+			}
+			else
+			{
+				foreach (RectifyRectangle rr in RectNodes)
+				{
+					if (rr.ContainsPoint(p, .5f))
+					{
+						return new Tuple<Position, Position>(new Position(rr.Left, rr.Bottom), new Position(rr.Right, rr.Top));
+					}
 				}
 			}
 

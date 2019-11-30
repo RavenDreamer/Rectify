@@ -24,6 +24,37 @@ namespace RectifyTest
 		}
 
 		/// <summary>
+		/// 10x10 Gridlattice w/ 6 randomish wall intersections on it
+		/// </summary>
+		/// <returns></returns>
+		public static GridLattice<IRectGrid> IntersectionLattice()
+		{
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(10);
+
+			InitGridLattice(data);
+
+			data[1, 2, Direction.East] = new RectGridCell(1, 1);
+			data[1, 2, Direction.South] = new RectGridCell(1, 1);
+
+			data[1, 5, Direction.East] = new RectGridCell(1, 1);
+			data[1, 5, Direction.North] = new RectGridCell(1, 1);
+
+			data[2, 7, Direction.West] = new RectGridCell(1, 1);
+			data[2, 7, Direction.North] = new RectGridCell(1, 1);
+
+			data[4, 2, Direction.East] = new RectGridCell(1, 1);
+			data[4, 2, Direction.North] = new RectGridCell(1, 1);
+			data[5, 2, Direction.West] = new RectGridCell(1, 1);
+
+			data[8, 1, Direction.North] = new RectGridCell(1, 1);
+			data[8, 1, Direction.West] = new RectGridCell(1, 1);
+			data[8, 2, Direction.West] = new RectGridCell(1, 1);
+
+			return data;
+		}
+
+
+		/// <summary>
 		/// 5x5 Gridlattice w/ most of a wall blocking it.
 		/// </summary>
 		/// <returns></returns>
@@ -95,7 +126,7 @@ namespace RectifyTest
 		}
 
 
-		static void InitGridLattice(GridLattice<IRectGrid> data)
+		public static void InitGridLattice(GridLattice<IRectGrid> data)
 		{
 			for (int x = 0; x < data.Width; x++)
 			{

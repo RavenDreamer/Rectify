@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RectifyUtils;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace RectifyTest
 {
@@ -31,6 +33,40 @@ namespace RectifyTest
 			Assert.AreEqual("32", rotatedData[3, 2], "Data was not rotated successfully as expected");
 			Assert.AreEqual("30", rotatedData[3, 0], "Data was not rotated successfully as expected");
 			Assert.AreEqual("02", rotatedData[0, 2], "Data was not rotated successfully as expected");
+		}
+
+
+		[TestMethod]
+		[TestCategory("DataUtils")]
+		public void LatticeGetBoundsTest()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice());
+			Assert.AreEqual(1, result.Count, "Did not get 1 initial rectangles as expected");
+
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			var bounds = pathfinder.GetRectBordersFromPoint(new Position(0, 0));
+			Assert.AreEqual(3, bounds.Item2.xPos, "did not get 3 width as expected");
+
+
+			var altLattice = new GridLattice<IRectGrid>(10);
+			GridLatticeTestData.InitGridLattice(altLattice);
+			altLattice[0, 0, Direction.East] = new RectGridCell(1, 1);
+			result = Rectify.MakeRectangles(altLattice);
+			Assert.AreEqual(4, result.Count, "Did not get 4 rectangles as expected");
+			var altfinder = new RectifyPathfinder(result, true);
+
+			//because one of the 4 rectangles is the wall, we should expect to get exactly 3 distinct rectangles
+			//here
+			HashSet<Position> uniques = new HashSet<Position>();
+			for (int x = 0; x < 10; x++)
+			{
+				for (int y = 0; y < 10; y++)
+				{
+					uniques.Add(altfinder.GetRectBordersFromPoint(new Position(x, y)).Item1);
+				}
+			}
+			Assert.AreEqual(3, uniques.Count, "Had more uniques than expected");
 		}
 
 		[TestMethod]
