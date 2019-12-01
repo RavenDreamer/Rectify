@@ -53,6 +53,26 @@ namespace RectifyTest
 			return data;
 		}
 
+		public static GridLattice<IRectGrid> CornersLattice()
+		{
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(10);
+
+			InitGridLattice(data);
+
+			data[1, 1, Direction.West] = new RectGridCell(1, 1);
+			data[1, 1, Direction.South] = new RectGridCell(1, 1);
+
+			data[2, 6, Direction.West] = new RectGridCell(1, 1);
+			data[2, 6, Direction.North] = new RectGridCell(1, 1);
+
+			data[4, 6, Direction.East] = new RectGridCell(1, 1);
+			data[4, 6, Direction.South] = new RectGridCell(1, 1);
+
+			data[6, 4, Direction.North] = new RectGridCell(1, 1);
+			data[6, 4, Direction.East] = new RectGridCell(1, 1);
+
+			return data;
+		}
 
 		/// <summary>
 		/// 5x5 Gridlattice w/ most of a wall blocking it.

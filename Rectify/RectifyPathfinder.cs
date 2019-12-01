@@ -650,11 +650,11 @@ namespace RectifyUtils
 			RectifyRectangle startRect = FindRectangleAroundPoint(startPosition);
 			RectifyRectangle endRect = FindRectangleAroundPoint(endPosition);
 			//early out
-			if (startRect == endRect)
-			{
-				//can move directly to destination b/c it's within the same rectangle
-				return new List<Position>() { startPosition, endPosition };
-			}
+			//if (startRect == endRect)
+			//{
+			//	//can move directly to destination b/c it's within the same rectangle
+			//	return new List<Position>() { startPosition, endPosition };
+			//}
 			//construct path query to see if it's in the cache
 			PathQuery cacheQuery = new PathQuery(startRect, endRect, edgeTypesFromMask, GetNearestNeighbors(startRect, startPosition, edgeTypesFromMask), GetNearestNeighbors(endRect, endPosition, edgeTypesFromMask), null);
 			var cacheResult = pathCache.Find(c => c.Equals(cacheQuery));
@@ -917,6 +917,9 @@ namespace RectifyUtils
 		/// <returns></returns>
 		private bool GetRecursiveNeighbors(RectifyRectangle startRect, RectifyRectangle endRect, HashSet<EdgeType> edgeTypesFromMask)
 		{
+			//if it's the same rect, always reachable. (Though optimal path may not be, we're not calculating that yet)
+			if (startRect == endRect) return true;
+
 			HashSet<RectifyRectangle> foundNeighbors = new HashSet<RectifyRectangle>() { startRect };
 			List<RectifyRectangle> neighborsToAdd = new List<RectifyRectangle>(GetNeighborsSimple(startRect, edgeTypesFromMask));
 

@@ -204,7 +204,21 @@ namespace RectifyTest
 			resultPath = pathfinder.CalculatePath(new Position(1, 2), new Position(2, 2));
 			Assert.AreEqual(2, resultPath.Count, "Did not find a path where expected");
 
+		}
 
+		[TestMethod]
+		[TestCategory("Pathfinder")]
+		public void TestLatticeCornerPathing()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
+			Assert.AreEqual(23, result.Count, "Did not get 23 initial rectangles as expected");
+
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(1, 0));
+			Assert.AreEqual(2, resultPath.Count, "Did not find a path of 2 where expected");
+			Assert.AreEqual(new Position(0, 0), resultPath[0]);
+			Assert.AreEqual(new Position(1, 0), resultPath[1]);
 		}
 
 		[TestMethod]
