@@ -539,35 +539,142 @@ namespace RectifyUtils
 			{
 				subsubPolygons.AddRange(SecondLevelDecomposition(sp));
 			}
-			//all rectangles are 3x too large. Can't be bothered to figure out how to properly shrink them atm.
-			//should still be fine for pathfinding.
+			//rectangles are not properly sized. Need to discard the edge rectangles and add them as walls on the cell rectangles isntead.
 			var rectangles = new List<RectifyRectangle>();
 			foreach (RectShape shape in subsubPolygons)
 			{
 				rectangles.Add(new RectifyRectangle(shape));
 			}
 
+			List<RectifyRectangle> cellRects = TranslateLatticeRectangles(rectangles, latticeData);
 			//Link Rectangles here.
-			foreach (RectifyRectangle linkRect in rectangles)
+			foreach (RectifyRectangle linkRect in cellRects)
 			{
 				//left edge
-				var leftNeighbors = rectangles.FindAll(r => r.Right == linkRect.Left && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
+				var leftNeighbors = cellRects.FindAll(r => r.Right == linkRect.Left && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
 				linkRect.SetNeighbors(leftNeighbors, Direction.West);
 
 				//right edge
-				var rightNeighbors = rectangles.FindAll(r => r.Left == linkRect.Right && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
+				var rightNeighbors = cellRects.FindAll(r => r.Left == linkRect.Right && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
 				linkRect.SetNeighbors(rightNeighbors, Direction.East);
 
 				//top edge
-				var topNeighbors = rectangles.FindAll(r => r.Bottom == linkRect.Top && (linkRect.Left < r.Right && linkRect.Right > r.Left));
+				var topNeighbors = cellRects.FindAll(r => r.Bottom == linkRect.Top && (linkRect.Left < r.Right && linkRect.Right > r.Left));
 				linkRect.SetNeighbors(topNeighbors, Direction.North);
 
 				//bottom edge
-				var bottomNeighbors = rectangles.FindAll(r => r.Top == linkRect.Bottom && (linkRect.Left < r.Right && linkRect.Right > r.Left));
+				var bottomNeighbors = cellRects.FindAll(r => r.Top == linkRect.Bottom && (linkRect.Left < r.Right && linkRect.Right > r.Left));
 				linkRect.SetNeighbors(bottomNeighbors, Direction.South);
 			}
 
-			return rectangles;
+			return cellRects;
+		}
+
+		/// <summary>
+		/// For each x and y cell coord, determine which xy cells are part of the same contiguous rectangles.
+		/// </summary>
+		/// <param name="rectangles"></param>
+		/// <param name="latticeData"></param>
+		/// <returns></returns>
+		private static List<RectifyRectangle> TranslateLatticeRectangles(List<RectifyRectangle> rectangles, GridLattice<IRectGrid> latticeData)
+		{
+			List<RectifyRectangle> outList = new List<RectifyRectangle>();
+			Dictionary<RectifyRectangle, List<Position>> cellRectangleMap = new Dictionary<RectifyRectangle, List<Position>>();
+			for (int x = 0; x < latticeData.Width; x++)
+			{
+				for (int y = 0; y < latticeData.Height; y++)
+				{
+
+					//multiply starting position
+					Position truePosition = new Position(x * 2 + 1, y * 2 + 1);
+
+					foreach (RectifyRectangle rr in rectangles)
+					{
+						if (rr.ContainsPoint(truePosition, .5f))
+						{
+							//we found the matching rectangle. Add it to the cellRectangleMap
+							if (cellRectangleMap.ContainsKey(rr))
+							{
+								//add to existing list
+								cellRectangleMap[rr].Add(new Position(x, y));
+							}
+							else
+							{
+								cellRectangleMap[rr] = new List<Position>() { new Position(x, y) };
+							}
+						}
+					}
+				}
+			}
+
+			//now we have a Dictionary with a group of each of the new rectangles we need to make.
+			foreach (var kvp in cellRectangleMap)
+			{
+				int lowX, lowY, highX, highY;
+
+				lowX = kvp.Value.Min(s => s.xPos);
+				lowY = kvp.Value.Min(s => s.yPos);
+				highX = kvp.Value.Max(s => s.xPos) + 1;
+				highY = kvp.Value.Max(s => s.yPos) + 1;
+
+				var rr = (new RectifyRectangle(new Position(lowX, lowY), new Position(highX, highY), kvp.Key.PathGroup));
+
+				//add in the appropriate walls
+				//it's a wall if the original lattice data pathgroup NE this rectangle's pathgroup.
+
+				for (int i = lowX; i < highX; i++)
+				{
+					var latticeCellSouth = latticeData[i, lowY, Direction.South];
+					var latticeCellNorth = latticeData[i, highY - 1, Direction.North];
+
+					if (latticeCellSouth.PathGroup() != kvp.Key.PathGroup)
+					{
+						rr.BottomEdge[i - lowX].EdgeType = EdgeType.Wall;
+					}
+					else
+					{
+						//do nothing; edge defaults to Nothing
+					}
+
+					if (latticeCellNorth.PathGroup() != kvp.Key.PathGroup)
+					{
+						rr.TopEdge[i - lowX].EdgeType = EdgeType.Wall;
+					}
+					else
+					{
+						//do nothing; edge defaults to Nothing
+					}
+				}
+
+				for (int j = lowY; j < highY; j++)
+				{
+					var latticeCellWest = latticeData[lowX, j, Direction.West];
+					var latticeCellEast = latticeData[highX - 1, j, Direction.East];
+
+					if (latticeCellWest.PathGroup() != kvp.Key.PathGroup)
+					{
+						rr.LeftEdge[j - lowY].EdgeType = EdgeType.Wall;
+					}
+					else
+					{
+						//do nothing; edge defaults to Nothing
+					}
+
+					if (latticeCellEast.PathGroup() != kvp.Key.PathGroup)
+					{
+						rr.RightEdge[j - lowY].EdgeType = EdgeType.Wall;
+					}
+					else
+					{
+						//do nothing; edge defaults to Nothing
+					}
+				}
+
+				outList.Add(rr);
+			}
+
+			return outList;
+
 		}
 
 		public static List<RectifyRectangle> MakeRectangles(int[,] data, DataLayout dataLayout, Position minXY = null, Position maxXY = null, List<RectDetectPair> edgeOverrides = null)

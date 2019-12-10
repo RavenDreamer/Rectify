@@ -53,20 +53,10 @@ namespace RectifyTest
 			GridLatticeTestData.InitGridLattice(altLattice);
 			altLattice[0, 0, Direction.East] = new RectGridCell(1, 1);
 			result = Rectify.MakeRectangles(altLattice);
-			Assert.AreEqual(4, result.Count, "Did not get 4 rectangles as expected");
+			//cell at 0,0; the rest of the row (1,0 -> 10,0), and the rest of the grid (0,1 -> 10,10)
+			Assert.AreEqual(3, result.Count, "Did not get 3 rectangles as expected");
 			var altfinder = new RectifyPathfinder(result, true);
 
-			//because one of the 4 rectangles is the wall, we should expect to get exactly 3 distinct rectangles
-			//here
-			HashSet<Position> uniques = new HashSet<Position>();
-			for (int x = 0; x < 10; x++)
-			{
-				for (int y = 0; y < 10; y++)
-				{
-					uniques.Add(altfinder.GetRectBordersFromPoint(new Position(x, y)).Item1);
-				}
-			}
-			Assert.AreEqual(3, uniques.Count, "Had more uniques than expected");
 		}
 
 		[TestMethod]

@@ -434,15 +434,16 @@ namespace RectifyUtils
 		private readonly Position bottomLeft;
 
 		internal RectifyRectangle(Position bottomLeft, Position topRight,
-			RectNeighbor[] LeftEdge, RectNeighbor[] RightEdge,
-			RectNeighbor[] TopEdge, RectNeighbor[] BottomEdge, int pathGroup)
+			//RectNeighbor[] LeftEdge, RectNeighbor[] RightEdge,
+			//RectNeighbor[] TopEdge, RectNeighbor[] BottomEdge, 
+			int pathGroup)
 		{
 			this.bottomLeft = bottomLeft;
 			this.topRight = topRight;
-			this.LeftEdge = LeftEdge;
-			this.RightEdge = RightEdge;
-			this.TopEdge = TopEdge;
-			this.BottomEdge = BottomEdge;
+			this.LeftEdge = new RectNeighbor[topRight.yPos - bottomLeft.yPos];
+			this.RightEdge = new RectNeighbor[topRight.yPos - bottomLeft.yPos];
+			this.TopEdge = new RectNeighbor[topRight.xPos - bottomLeft.xPos];
+			this.BottomEdge = new RectNeighbor[topRight.xPos - bottomLeft.xPos];
 			this.PathGroup = pathGroup;
 
 			//instantiate the edgearrays

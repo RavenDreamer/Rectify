@@ -182,14 +182,14 @@ namespace RectifyTest
 		public void TestBlockPathsLattice()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.KeyholeApertureLattice());
-			Assert.AreEqual(5, result.Count, "Did not get 5 initial rectangles as expected");
+			Assert.AreEqual(2, result.Count, "Did not get 2 initial rectangles as expected");
 
 			var pathfinder = new RectifyPathfinder(result, true);
 
 			var resultPath = pathfinder.CalculatePath(new Position(2, 3), new Position(2, 1));
 			Assert.AreEqual(3, resultPath.Count, "Did not find a path where expected");
 
-			pathfinder.ReplaceCellAt(new Position(2, 2), Direction.North, 1);
+			pathfinder.ReplaceCellEdgeAt(new Position(2, 2), Direction.North, EdgeType.Wall);
 
 			Assert.AreEqual(5, pathfinder.NodeCount, "Did not get the 5 total rectangles expected");
 
@@ -211,7 +211,7 @@ namespace RectifyTest
 		public void TestLatticeCornerPathing()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
-			Assert.AreEqual(23, result.Count, "Did not get 23 initial rectangles as expected");
+			Assert.AreEqual(14, result.Count, "Did not get 23 initial rectangles as expected");
 
 			var pathfinder = new RectifyPathfinder(result, true);
 
@@ -219,6 +219,22 @@ namespace RectifyTest
 			Assert.AreEqual(2, resultPath.Count, "Did not find a path of 2 where expected");
 			Assert.AreEqual(new Position(0, 0), resultPath[0]);
 			Assert.AreEqual(new Position(1, 0), resultPath[1]);
+		}
+
+		[TestMethod]
+		[TestCategory("Pathfinder")]
+		public void TestPathTranslate()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
+
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			var resultPath = pathfinder.CalculatePath(new Position(3, 6), new Position(6, 4));
+
+			var resultPathAlt = pathfinder.CalculatePath(new Position(6, 4), new Position(3, 6));
+
+			//TODO
+			Assert.Fail("Calc final rects like the unity project does. (Shape is correct?). Re-add edges to final rects. Recalculate adjacent neighbors using the minified rects.");
 		}
 
 		[TestMethod]
