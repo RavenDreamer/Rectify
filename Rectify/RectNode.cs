@@ -370,6 +370,25 @@ namespace RectifyUtils
 		}
 	}
 
+	public class RectangleBounds
+	{
+		public Position LowerLeft { get; private set; }
+		public Position UpperRight { get; private set; }
+
+		public RectangleBounds(Position botLeft, Position topRight)
+		{
+			LowerLeft = botLeft;
+			UpperRight = topRight;
+		}
+
+		public bool ContainsPoint(Position position, float positiveOffset = .5f)
+		{
+			if ((position.xPos + positiveOffset) < this.UpperRight.xPos && (position.xPos + positiveOffset) >= this.LowerLeft.xPos && (position.yPos + positiveOffset) < this.UpperRight.yPos && (position.yPos + positiveOffset) >= this.LowerLeft.yPos) return true;
+
+			return false;
+		}
+	}
+
 	/// <summary>
 	/// Represents a rectangle (4 vertices), a perimeter of edges, a list of which rectangles
 	/// this rectangle neighbors, and which edges allow connections to those neighbors
@@ -419,6 +438,11 @@ namespace RectifyUtils
 		internal RectNeighbor[] RightEdge;
 		internal RectNeighbor[] TopEdge;
 		internal RectNeighbor[] BottomEdge;
+
+		internal RectangleBounds ToBounds()
+		{
+			return new RectangleBounds(new Position(Left, Bottom), new Position(Right, Top));
+		}
 
 		//private HashSet<RectNeighbor> neighbors = new HashSet<RectNeighbor>();
 

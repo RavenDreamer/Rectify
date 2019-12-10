@@ -225,11 +225,23 @@ namespace RectifyTest
 		[TestCategory("Pathfinder")]
 		public void TestNoPathNecessary()
 		{
-			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
+			var result = Rectify.MakeRectangles(GridLatticeTestData.HorizBisectedLattice());
 			var pathfinder = new RectifyPathfinder(result, true);
 
-			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(0, 0));
+			var resultPath = pathfinder.CalculatePath(new Position(2, 0), new Position(2, 4));
 			Assert.AreEqual(0, resultPath.Count, "Did not generate a zero path as expected");
+
+			pathfinder.ReplaceCellEdgeAt(new Position(2, 2), Direction.North, EdgeType.None);
+
+			resultPath = pathfinder.CalculatePath(new Position(2, 0), new Position(2, 4));
+			Assert.AreNotEqual(0, resultPath.Count, "Did not generate a non-zero path as expected");
+
+		}
+
+		[TestMethod]
+		[TestCategory("Pathfinder")]
+		public void TestMakeNewPath()
+		{
 
 		}
 

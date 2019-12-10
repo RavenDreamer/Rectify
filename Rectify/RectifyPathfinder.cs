@@ -166,8 +166,10 @@ namespace RectifyUtils
 		/// Clears the cache of any paths using the old rectangle, and sets a dirty flag on the pathfinder.
 		/// </summary>
 		/// <param name="position"></param>
-		/// <param name="v"></param>
-		public void ReplaceCellAt(Position position, int pathGroup, RectifyRectangle container = null)
+		/// <param name="pathGroup"></param>
+		/// <param name="container"></param>
+		/// <returns>A list of the bounds of all rectangles affected by the change</returns>
+		public List<RectangleBounds> ReplaceCellAt(Position position, int pathGroup, RectifyRectangle container = null)
 		{
 			//find the rectangle that contains this position.
 			var containingRect = container ?? FindRectangleAroundPoint(position);
@@ -288,6 +290,8 @@ namespace RectifyUtils
 				linkRect.SetNeighbors(bottomNeighbors, Direction.South);
 			}
 
+			List<RectangleBounds> outList = new List<RectangleBounds>() { containingRect.ToBounds() };
+
 			//finally, set the edges on the center cell (and surrounding cells) to be wall-type if applicable. 
 			var tempLeft = leftRect ?? FindRectangleAroundPoint(new Position(position.xPos - 1, position.yPos), true);
 			if (tempLeft != null)
@@ -297,6 +301,7 @@ namespace RectifyUtils
 				tempLeft.RightEdge[leftOffsetVector.yPos].Neighbor = centerCell;
 				centerCell.LeftEdge[0].EdgeType = tempLeft.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
 				//centerCell.LeftEdge[0].Neighbor = tempLeft;
+				outList.Add(tempLeft.ToBounds());
 			}
 			else
 			{
@@ -312,6 +317,7 @@ namespace RectifyUtils
 				tempRight.LeftEdge[rightOffsetVector.yPos].EdgeType = tempRight.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
 				tempRight.LeftEdge[rightOffsetVector.yPos].Neighbor = centerCell;
 				centerCell.RightEdge[0].EdgeType = tempRight.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				outList.Add(tempRight.ToBounds());
 			}
 			else
 			{
@@ -327,6 +333,7 @@ namespace RectifyUtils
 				tempTop.BottomEdge[topOffsetVector.xPos].EdgeType = tempTop.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
 				tempTop.BottomEdge[topOffsetVector.xPos].Neighbor = centerCell;
 				centerCell.TopEdge[0].EdgeType = tempTop.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				outList.Add(tempTop.ToBounds());
 			}
 			else
 			{
@@ -342,6 +349,7 @@ namespace RectifyUtils
 				tempBot.TopEdge[botOffsetVector.xPos].EdgeType = tempBot.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
 				tempBot.TopEdge[botOffsetVector.xPos].Neighbor = centerCell;
 				centerCell.BottomEdge[0].EdgeType = tempBot.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				outList.Add(tempBot.ToBounds());
 			}
 			else
 			{
@@ -352,6 +360,8 @@ namespace RectifyUtils
 			this.RectNodes.Remove(containingRect);
 			this.RectNodes.AddRange(newRects);
 
+			return outList;
+
 		}
 
 		/// <summary>
@@ -361,7 +371,7 @@ namespace RectifyUtils
 		/// <param name="position"></param>
 		/// <param name="edgeDirection"></param>
 		/// <param name="pathGroup">the pathgroup of the BASE CELL, not the wall</param>
-		public void ReplaceCellEdgeAt(Position position, Direction edgeDirection, EdgeType edge)
+		public List<RectangleBounds> ReplaceCellEdgeAt(Position position, Direction edgeDirection, EdgeType edge)
 		{
 			//if nothing changes, early out. But we are basically assuming a Wall will 
 			//be caught before that, I think.
@@ -369,7 +379,7 @@ namespace RectifyUtils
 			//find the rectangle that contains this position.
 			var containingRect = FindRectangleAroundPoint(position);
 
-			ReplaceCellAt(position, containingRect.PathGroup, containingRect);
+			var modBounds = ReplaceCellAt(position, containingRect.PathGroup, containingRect);
 
 
 			var newRect = FindRectangleAroundPoint(position);
@@ -378,48 +388,50 @@ namespace RectifyUtils
 			switch (edgeDirection)
 			{
 				case Direction.West:
-					newRect.LeftEdge[0].EdgeType = EdgeType.Wall;
+					newRect.LeftEdge[0].EdgeType = edge;
 					neighborRect = newRect.LeftEdge[0].Neighbor;
 
 					if (neighborRect != null)
 					{
 						int vertOffset = position.yPos - neighborRect.Offset.yPos;
-						neighborRect.RightEdge[vertOffset].EdgeType = EdgeType.Wall;
+						neighborRect.RightEdge[vertOffset].EdgeType = edge;
 					}
 					break;
 
 				case Direction.East:
-					newRect.RightEdge[0].EdgeType = EdgeType.Wall;
+					newRect.RightEdge[0].EdgeType = edge;
 					neighborRect = newRect.RightEdge[0].Neighbor;
 
 					if (neighborRect != null)
 					{
 						int vertOffset = position.yPos - neighborRect.Offset.yPos;
-						neighborRect.LeftEdge[vertOffset].EdgeType = EdgeType.Wall;
+						neighborRect.LeftEdge[vertOffset].EdgeType = edge;
 					}
 					break;
 				case Direction.North:
-					newRect.TopEdge[0].EdgeType = EdgeType.Wall;
+					newRect.TopEdge[0].EdgeType = edge;
 					neighborRect = newRect.TopEdge[0].Neighbor;
 
 					if (neighborRect != null)
 					{
 						int horizOffset = position.xPos - neighborRect.Offset.xPos;
-						neighborRect.BottomEdge[horizOffset].EdgeType = EdgeType.Wall;
+						neighborRect.BottomEdge[horizOffset].EdgeType = edge;
 					}
 					break;
 
 				case Direction.South:
-					newRect.BottomEdge[0].EdgeType = EdgeType.Wall;
+					newRect.BottomEdge[0].EdgeType = edge;
 					neighborRect = newRect.BottomEdge[0].Neighbor;
 
 					if (neighborRect != null)
 					{
 						int horizOffset = position.xPos - neighborRect.Offset.xPos;
-						neighborRect.TopEdge[horizOffset].EdgeType = EdgeType.Wall;
+						neighborRect.TopEdge[horizOffset].EdgeType = edge;
 					}
 					break;
 			}
+
+			return modBounds;
 		}
 
 		private void ReplaceCellAt(Position rectLow, Position rectHigh, int pathGroup)

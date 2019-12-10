@@ -94,6 +94,25 @@ namespace RectifyTest
 		}
 
 		/// <summary>
+		/// 5x5 Gridlattice w/ a wall bisecting it.
+		/// </summary>
+		/// <returns></returns>
+		public static GridLattice<IRectGrid> HorizBisectedLattice()
+		{
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(5);
+
+			InitGridLattice(data);
+
+			data[0, 2, Direction.North] = new RectGridCell(1, 1);
+			data[1, 2, Direction.North] = new RectGridCell(1, 1);
+			data[2, 2, Direction.North] = new RectGridCell(1, 1);
+			data[3, 2, Direction.North] = new RectGridCell(1, 1);
+			data[4, 2, Direction.North] = new RectGridCell(1, 1);
+
+			return data;
+		}
+
+		/// <summary>
 		/// Returns a circular 5x5 gridlattice. If edge data is 0, it's "empty", otherwise
 		/// it'll be treated as a wall.
 		/// </summary>
