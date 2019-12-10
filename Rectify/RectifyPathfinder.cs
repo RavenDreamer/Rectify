@@ -654,17 +654,14 @@ namespace RectifyUtils
 		private List<Position> CalculatePath(Position initialPosition, Position finalPosition, int flagsMask = (int)EdgeType.None, PathfinderMetrics metrics = null)
 		{
 			Position startPosition, endPosition;
-			//if (IsLattice)
-			//{
-			//	//multiply by 2x+1
-			//	startPosition = new Position(2 * initialPosition.xPos + 1, 2 * initialPosition.yPos + 1);
-			//	endPosition = new Position(2 * finalPosition.xPos + 1, 2 * finalPosition.yPos + 1);
-			//}
-			//else
-			//{
+
+			//no path needed.
+			if (initialPosition.Equals(finalPosition)) return new List<Position>();
+
+
+			//Allows for preprocessing (if needed again in the future)
 			startPosition = initialPosition;
 			endPosition = finalPosition;
-			//}
 
 			//get valid edgetypes from the mask
 			HashSet<EdgeType> edgeTypesFromMask = new HashSet<EdgeType>();

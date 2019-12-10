@@ -223,6 +223,18 @@ namespace RectifyTest
 
 		[TestMethod]
 		[TestCategory("Pathfinder")]
+		public void TestNoPathNecessary()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(0, 0));
+			Assert.AreEqual(0, resultPath.Count, "Did not generate a zero path as expected");
+
+		}
+
+		[TestMethod]
+		[TestCategory("Pathfinder")]
 		public void TestPathTranslate()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
@@ -233,8 +245,7 @@ namespace RectifyTest
 
 			var resultPathAlt = pathfinder.CalculatePath(new Position(6, 4), new Position(3, 6));
 
-			//TODO
-			Assert.Fail("Calc final rects like the unity project does. (Shape is correct?). Re-add edges to final rects. Recalculate adjacent neighbors using the minified rects.");
+			//Due to changes in underlying code, this test is moot.
 		}
 
 		[TestMethod]
