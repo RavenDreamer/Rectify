@@ -179,6 +179,25 @@ namespace RectifyTest
 
 		[TestMethod]
 		[TestCategory("Pathfinder")]
+		public void TestBlockPathsVertical()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.VertKeyholeApertureLattice());
+			Assert.AreEqual(2, result.Count, "Did not get 2 initial rectangles as expected");
+
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			var resultPath = pathfinder.CalculatePath(new Position(3, 2), new Position(1, 2));
+			Assert.AreEqual(3, resultPath.Count, "Did not find a path where expected");
+
+			pathfinder.ReplaceCellEdgeAt(new Position(2, 2), Direction.West, EdgeType.Wall);
+
+			resultPath = pathfinder.CalculatePath(new Position(3, 2), new Position(1, 2));
+			Assert.AreEqual(0, resultPath.Count, "Found a path where none expected");
+
+		}
+
+		[TestMethod]
+		[TestCategory("Pathfinder")]
 		public void TestBlockPathsLattice()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.KeyholeApertureLattice());

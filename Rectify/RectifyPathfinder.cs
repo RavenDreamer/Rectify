@@ -188,13 +188,11 @@ namespace RectifyUtils
 			RectifyRectangle topRect = null, botRect = null;
 			if (containingRect.Height - offsetVector.yPos - 1 > 0)
 			{
-				int topHeight = containingRect.Top - offsetVector.yPos - 1;
-				topRect = new RectifyRectangle(new Position(position.xPos, position.yPos + 1), new Position(position.xPos + 1, position.yPos + topHeight + 1),
+				topRect = new RectifyRectangle(new Position(position.xPos, position.yPos + 1), new Position(position.xPos + 1, containingRect.Top),
 												 ogPathGroup);
 			}
-			if (offsetVector.yPos != 0)
+			if (offsetVector.yPos > 0)
 			{
-				int botHeight = offsetVector.yPos - containingRect.Bottom;
 				botRect = new RectifyRectangle(new Position(position.xPos, containingRect.Bottom), new Position(position.xPos + 1, position.yPos),
 												 ogPathGroup);
 			}
@@ -218,16 +216,55 @@ namespace RectifyUtils
 			//need to copy the parent container's RectNeighbors
 			if (topRect != null)
 			{
-				//left & right edges default to "None", which is what we want.
-				//bottom is always against the center cell, which we calculate below
+				//left & right edges default to "None", which is what we want, unless we're on a Left / Right edge
+				if (leftRect == null)
+				{
+					//on left edge, copy from parent
+					int yOffDifference = topRect.Offset.yPos - containingRect.Offset.yPos;
+					for (int i = 0; i < topRect.Height; i++)
+					{
+						topRect.LeftEdge[i].EdgeType = containingRect.LeftEdge[yOffDifference + i].EdgeType;
+					}
+				}
+				if (rightRect == null)
+				{
+					//on right edge, copy from parent
+					int yOffDifference = topRect.Offset.yPos - containingRect.Offset.yPos;
+					for (int i = 0; i < topRect.Height; i++)
+					{
+						topRect.RightEdge[i].EdgeType = containingRect.RightEdge[yOffDifference + i].EdgeType;
+					}
+				}
+
+				//top edge is always whatever the containing rect was.
 				topRect.TopEdge[0].EdgeType = containingRect.TopEdge[topRect.Offset.xPos - containingRect.Offset.xPos].EdgeType;
+
+				//bottom is always against the center cell, which we calculate below
 				newRects.Add(topRect);
 			}
 			if (botRect != null)
 			{
-				//left & right edges default to "None", which is what we want.
-				//bottom is always against the center cell, which we calculate below
+				//left & right edges default to "None", which is what we want, unless we're on a Left / Right edge
+				if (leftRect == null)
+				{
+					//on left edge, copy from parent
+					for (int i = 0; i < botRect.Height; i++)
+					{
+						botRect.LeftEdge[i].EdgeType = containingRect.LeftEdge[i].EdgeType;
+					}
+				}
+				if (rightRect == null)
+				{
+					//on right edge, copy from parent
+					for (int i = 0; i < botRect.Height; i++)
+					{
+						botRect.RightEdge[i].EdgeType = containingRect.RightEdge[i].EdgeType;
+					}
+				}
+
+				//bottom edge is always whatever the containing rect was.
 				botRect.BottomEdge[0].EdgeType = containingRect.TopEdge[botRect.Offset.xPos - containingRect.Offset.xPos].EdgeType;
+				//top is always against the center cell, which we calculate below
 				newRects.Add(botRect);
 			}
 			if (leftRect != null)
@@ -263,8 +300,6 @@ namespace RectifyUtils
 				}
 				newRects.Add(rightRect);
 			}
-
-
 
 			//now link the rectangles with any neighbors of the parent;
 			List<RectifyRectangle> parentNeighbors = containingRect.AllNeighbors;

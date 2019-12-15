@@ -349,6 +349,18 @@ namespace RectifyTest
 			};
 		}
 
+		public static int[,] VerticalKeyholeTest()
+		{
+			return new int[,]
+			{
+				{ 0,0,2,0,0 },
+				{ 0,0,2,0,0 },
+				{ 0,0,0,0,0 },
+				{ 0,0,2,0,0 },
+				{ 0,0,2,0,0 },
+			};
+		}
+
 		public static int[,] BigKeyholeTest()
 		{
 			return new int[,]

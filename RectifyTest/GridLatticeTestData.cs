@@ -94,6 +94,25 @@ namespace RectifyTest
 		}
 
 		/// <summary>
+		/// 5x5 Gridlattice w/ most of a wall blocking it.
+		/// </summary>
+		/// <returns></returns>
+		public static GridLattice<IRectGrid> VertKeyholeApertureLattice()
+		{
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(5);
+
+			InitGridLattice(data);
+
+			data[2, 0, Direction.West] = new RectGridCell(1, 1);
+			data[2, 1, Direction.West] = new RectGridCell(1, 1);
+			//data[2, 2, Direction.West] = new RectGridCell(1, 1);
+			data[2, 3, Direction.West] = new RectGridCell(1, 1);
+			data[2, 4, Direction.West] = new RectGridCell(1, 1);
+
+			return data;
+		}
+
+		/// <summary>
 		/// 5x5 Gridlattice w/ a wall bisecting it.
 		/// </summary>
 		/// <returns></returns>
