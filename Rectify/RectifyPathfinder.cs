@@ -169,7 +169,7 @@ namespace RectifyUtils
 		/// <param name="pathGroup"></param>
 		/// <param name="container"></param>
 		/// <returns>A list of the bounds of all rectangles affected by the change</returns>
-		public List<RectangleBounds> ReplaceCellAt(Position position, int pathGroup, RectifyRectangle container = null)
+		public List<RectangleBounds> ReplaceCellAt(Position position, int pathGroup, bool isCenterCell = true, RectifyRectangle container = null)
 		{
 			//find the rectangle that contains this position.
 			var containingRect = container ?? FindRectangleAroundPoint(position);
@@ -332,10 +332,22 @@ namespace RectifyUtils
 			if (tempLeft != null)
 			{
 				var leftOffsetVector = position - tempLeft.Offset;
-				tempLeft.RightEdge[leftOffsetVector.yPos].EdgeType = tempLeft.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				//if pathgroups are the same, use existing edgeType (defaults to "Empty")
+				if (tempLeft.PathGroup == centerCell.PathGroup)
+				{
+					//if we're not dealing with an edge, this can open up new paths
+					if (isCenterCell)
+					{
+						tempLeft.RightEdge[leftOffsetVector.yPos].EdgeType = EdgeType.None;
+					}
+				}
+				else
+				{
+					tempLeft.RightEdge[leftOffsetVector.yPos].EdgeType = EdgeType.Wall;
+				}
 				tempLeft.RightEdge[leftOffsetVector.yPos].Neighbor = centerCell;
-				centerCell.LeftEdge[0].EdgeType = tempLeft.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
-				//centerCell.LeftEdge[0].Neighbor = tempLeft;
+				centerCell.LeftEdge[0].EdgeType = tempLeft.RightEdge[leftOffsetVector.yPos].EdgeType;
+
 				outList.Add(tempLeft.ToBounds());
 			}
 			else
@@ -349,9 +361,22 @@ namespace RectifyUtils
 			if (tempRight != null)
 			{
 				var rightOffsetVector = position - tempRight.Offset;
-				tempRight.LeftEdge[rightOffsetVector.yPos].EdgeType = tempRight.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				//if pathgroups are the same, use existing edgeType (defaults to "Empty")
+				if (tempRight.PathGroup == centerCell.PathGroup)
+				{
+					//if we're not dealing with an edge, this can open up new paths
+					if (isCenterCell)
+					{
+						tempRight.LeftEdge[rightOffsetVector.yPos].EdgeType = EdgeType.None;
+					}
+				}
+				else
+				{
+					tempRight.LeftEdge[rightOffsetVector.yPos].EdgeType = EdgeType.Wall;
+				}
 				tempRight.LeftEdge[rightOffsetVector.yPos].Neighbor = centerCell;
-				centerCell.RightEdge[0].EdgeType = tempRight.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				centerCell.RightEdge[0].EdgeType = tempRight.LeftEdge[rightOffsetVector.yPos].EdgeType;
+
 				outList.Add(tempRight.ToBounds());
 			}
 			else
@@ -365,9 +390,23 @@ namespace RectifyUtils
 			if (tempTop != null)
 			{
 				var topOffsetVector = position - tempTop.Offset;
-				tempTop.BottomEdge[topOffsetVector.xPos].EdgeType = tempTop.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				//if pathgroups are the same, use existing edgeType (defaults to "Empty")
+				if (tempTop.PathGroup == centerCell.PathGroup)
+				{
+					//if we're not dealing with an edge, this can open up new paths
+					if (isCenterCell)
+					{
+						tempTop.BottomEdge[topOffsetVector.xPos].EdgeType = EdgeType.None;
+					}
+					//do nothing;
+				}
+				else
+				{
+					tempTop.BottomEdge[topOffsetVector.xPos].EdgeType = EdgeType.Wall;
+				}
 				tempTop.BottomEdge[topOffsetVector.xPos].Neighbor = centerCell;
-				centerCell.TopEdge[0].EdgeType = tempTop.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				centerCell.TopEdge[0].EdgeType = tempTop.BottomEdge[topOffsetVector.xPos].EdgeType;
+
 				outList.Add(tempTop.ToBounds());
 			}
 			else
@@ -381,9 +420,23 @@ namespace RectifyUtils
 			if (tempBot != null)
 			{
 				var botOffsetVector = position - tempBot.Offset;
-				tempBot.TopEdge[botOffsetVector.xPos].EdgeType = tempBot.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				//if pathgroups are the same, use existing edgeType (defaults to "Empty")
+				if (tempBot.PathGroup == centerCell.PathGroup)
+				{
+					//if we're not dealing with an edge, this can open up new paths
+					if (isCenterCell)
+					{
+						tempBot.TopEdge[botOffsetVector.xPos].EdgeType = EdgeType.None;
+					}
+					//do nothing;
+				}
+				else
+				{
+					tempBot.TopEdge[botOffsetVector.xPos].EdgeType = EdgeType.Wall;
+				}
 				tempBot.TopEdge[botOffsetVector.xPos].Neighbor = centerCell;
-				centerCell.BottomEdge[0].EdgeType = tempBot.PathGroup == centerCell.PathGroup ? EdgeType.None : EdgeType.Wall;
+				centerCell.BottomEdge[0].EdgeType = tempBot.TopEdge[botOffsetVector.xPos].EdgeType;
+
 				outList.Add(tempBot.ToBounds());
 			}
 			else
@@ -414,7 +467,7 @@ namespace RectifyUtils
 			//find the rectangle that contains this position.
 			var containingRect = FindRectangleAroundPoint(position);
 
-			var modBounds = ReplaceCellAt(position, containingRect.PathGroup, containingRect);
+			var modBounds = ReplaceCellAt(position, containingRect.PathGroup, false, containingRect);
 
 
 			var newRect = FindRectangleAroundPoint(position);

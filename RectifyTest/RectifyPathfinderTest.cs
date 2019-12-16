@@ -227,6 +227,30 @@ namespace RectifyTest
 
 		[TestMethod]
 		[TestCategory("Pathfinder")]
+		public void SequentialEdgeAdditionTest()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice());
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			//add edges to the same cell one after another
+
+			pathfinder.ReplaceCellEdgeAt(new Position(1, 1), Direction.West, EdgeType.Wall);
+			var resultPath = pathfinder.CalculatePath(new Position(0, 1), new Position(1, 1));
+			Assert.AreNotEqual(2, resultPath.Count, "Did not path around wall edge as expected");
+
+			pathfinder.ReplaceCellEdgeAt(new Position(1, 1), Direction.South, EdgeType.Wall);
+			resultPath = pathfinder.CalculatePath(new Position(0, 1), new Position(1, 1));
+			Assert.AreNotEqual(2, resultPath.Count, "Did not path around wall edge as expected");
+
+			pathfinder.ReplaceCellEdgeAt(new Position(1, 1), Direction.East, EdgeType.Wall);
+			resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(2, 0));
+			Assert.AreEqual(3, resultPath.Count, "Did not path around wall edge as expected");
+
+		}
+
+
+		[TestMethod]
+		[TestCategory("Pathfinder")]
 		public void TestLatticeCornerPathing()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
