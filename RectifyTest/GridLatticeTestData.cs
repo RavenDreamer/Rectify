@@ -14,14 +14,16 @@ namespace RectifyTest
 		/// it'll be treated as a wall.
 		/// </summary>
 		/// <returns></returns>
-		public static GridLattice<IRectGrid> EmptyGridLattice()
+		public static GridLattice<IRectGrid> EmptyGridLattice(int i = 3)
 		{
-			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(3);
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(i);
 
 			InitGridLattice(data);
 
 			return data;
 		}
+
+
 
 		/// <summary>
 		/// 10x10 Gridlattice w/ 6 randomish wall intersections on it

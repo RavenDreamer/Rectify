@@ -305,8 +305,9 @@ namespace RectifyUtils
 			List<RectifyRectangle> parentNeighbors = containingRect.AllNeighbors;
 			parentNeighbors.AddRange(newRects);
 
+
 			//Link Rectangles here.
-			foreach (RectifyRectangle linkRect in newRects)
+			foreach (RectifyRectangle linkRect in parentNeighbors)
 			{
 				//left edge
 				var leftNeighbors = parentNeighbors.FindAll(r => r.Right == linkRect.Left && (linkRect.Bottom < r.Top && linkRect.Top > r.Bottom));
