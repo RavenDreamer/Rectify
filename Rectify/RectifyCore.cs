@@ -107,7 +107,7 @@ namespace RectifyUtils
 			//System.Diagnostics.Debug.WriteLine(line);
 
 
-			return GetRectNodes(output, DataLayout.Quadrant1);
+			return GetRectNodes(output, DataLayout.Lattice);
 		}
 
 
@@ -119,8 +119,20 @@ namespace RectifyUtils
 		/// <param name="data"></param>
 		public static RectNode[,] GetRectNodes(int[,] data, DataLayout dataLayout, List<RectDetectPair> edgeOverrides = null, Position targetminXY = null, Position targetmaxXY = null)
 		{
-			int maxWidth = data.GetLength(1);
-			int maxHeight = data.GetLength(0);
+			int maxWidth;
+			int maxHeight;
+
+			if (dataLayout == DataLayout.Lattice)
+			{
+				maxWidth = data.GetLength(0);
+				maxHeight = data.GetLength(1);
+			}
+			else
+			{
+				maxWidth = data.GetLength(1);
+				maxHeight = data.GetLength(0);
+			}
+
 
 			int lowX;
 			int lowY;

@@ -24,6 +24,20 @@ namespace RectifyTest
 		}
 
 
+		/// <summary>
+		/// Returns an empty 3x3 gridlattice. If edge data is 0, it's "empty", otherwise
+		/// it'll be treated as a wall.
+		/// </summary>
+		/// <returns></returns>
+		public static GridLattice<IRectGrid> EmptyGridLattice(int i, int j)
+		{
+			GridLattice<IRectGrid> data = new GridLattice<IRectGrid>(i, j);
+
+			InitGridLattice(data);
+
+			return data;
+		}
+
 
 		/// <summary>
 		/// 10x10 Gridlattice w/ 6 randomish wall intersections on it

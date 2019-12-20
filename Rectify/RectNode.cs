@@ -23,6 +23,7 @@ namespace RectifyUtils
 	{
 		CodeInitializedArray, //you initialized a 2d array in code, but want the visual bottom left value to be @ 0,0
 		Quadrant1, //origin is @ 0,0 in the bottom left corner. No processing needed.
+		Lattice, //GridLattice, otherwise as Quadrant1
 	}
 
 	public enum FlowType

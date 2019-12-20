@@ -815,6 +815,17 @@ namespace RectifyTest
 
 		[TestMethod]
 		[TestCategory("From GridLattice")]
+		public void RectNodesFromEmptyUnevenGridLatticeTest()
+		{
+			List<RectifyRectangle> result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10, 20));
+			Assert.AreEqual(1, result.Count, "Didn't get the single Rectangle as expected");
+
+			List<RectifyRectangle> result2 = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(15, 10));
+			Assert.AreEqual(1, result2.Count, "Didn't get the single Rectangle as expected");
+		}
+
+		[TestMethod]
+		[TestCategory("From GridLattice")]
 		public void RectNodesFromGridLatticeTest()
 		{
 			//These two cases result in very similar maps, but are distinct b/c of needing / not needing to deal with 1d segments.
