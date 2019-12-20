@@ -293,7 +293,7 @@ namespace RectifyUtils
 				}
 				for (int j = 0; j < rightRect.Height; j++)
 				{
-					rightRect.RightEdge[j].EdgeType = containingRect.LeftEdge[j].EdgeType;
+					rightRect.RightEdge[j].EdgeType = containingRect.RightEdge[j].EdgeType;
 					//left side only borders top & bottom rects (which were split from the same container, and so share the same pathgroup)
 					//OR the center tile (which is calculated further below)
 					rightRect.LeftEdge[j].EdgeType = EdgeType.None;

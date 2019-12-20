@@ -178,7 +178,7 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void TestBlockPathsVertical()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.VertKeyholeApertureLattice());
@@ -197,7 +197,7 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void TestBlockPathsLattice()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.KeyholeApertureLattice());
@@ -226,7 +226,7 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void SequentialEdgeAdditionTest()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice());
@@ -250,7 +250,7 @@ namespace RectifyTest
 
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void BiggerSequentialEdgeAdditionTest()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10));
@@ -270,7 +270,7 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void TestLatticeCornerPathing()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
@@ -285,7 +285,7 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void TestNoPathNecessary()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.HorizBisectedLattice());
@@ -302,14 +302,28 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
-		public void TestMakeNewPath()
+		[TestCategory("LatticePathfinder")]
+		public void TestPathAfterNewEdges()
 		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10, 10));
+			var pathfinder = new RectifyPathfinder(result, true);
 
+			for (int i = 0; i < 10; i++)
+			{
+				pathfinder.ReplaceCellEdgeAt(new Position(7, i), Direction.West, EdgeType.Wall);
+			}
+
+			var resultPath = pathfinder.CalculatePath(new Position(0, 6), new Position(9, 5));
+			Assert.AreEqual(0, resultPath.Count, "Did not generate a zero path as expected");
+
+			pathfinder.ReplaceCellEdgeAt(new Position(5, 2), Direction.North, EdgeType.Wall);
+
+			resultPath = pathfinder.CalculatePath(new Position(0, 6), new Position(9, 5));
+			Assert.AreEqual(0, resultPath.Count, "Did not generate a zero path as expected");
 		}
 
 		[TestMethod]
-		[TestCategory("Pathfinder")]
+		[TestCategory("LatticePathfinder")]
 		public void TestPathTranslate()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());

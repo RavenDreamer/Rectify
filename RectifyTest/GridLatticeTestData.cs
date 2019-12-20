@@ -10,8 +10,7 @@ namespace RectifyTest
 	public class GridLatticeTestData
 	{
 		/// <summary>
-		/// Returns an empty 3x3 gridlattice. If edge data is 0, it's "empty", otherwise
-		/// it'll be treated as a wall.
+		/// Returns an even NxN gridlattice, defaulting to 3
 		/// </summary>
 		/// <returns></returns>
 		public static GridLattice<IRectGrid> EmptyGridLattice(int i = 3)
@@ -25,8 +24,7 @@ namespace RectifyTest
 
 
 		/// <summary>
-		/// Returns an empty 3x3 gridlattice. If edge data is 0, it's "empty", otherwise
-		/// it'll be treated as a wall.
+		/// Returns an empty ixj gridlattice.
 		/// </summary>
 		/// <returns></returns>
 		public static GridLattice<IRectGrid> EmptyGridLattice(int i, int j)
