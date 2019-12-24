@@ -299,6 +299,7 @@ namespace RectifyUtils
 			}
 		};
 
+
 		//public static RectNode[,] GetRectNodesFunctional(int[,] data)
 		//{
 		//	int maxWidth = data.GetLength(1);
@@ -541,9 +542,11 @@ namespace RectifyUtils
 			var polygons = FindVertsFromEdges(output);
 
 			var subpolygons = new List<RectShape>();
+			List<RectEdge> removeEdges = new List<RectEdge>();
 			foreach (var p in polygons)
 			{
-				subpolygons.AddRange(FirstLevelDecomposition(p));
+				subpolygons.AddRange(FirstLevelDecomposition(p, out List<RectEdge> holeEdges));
+				removeEdges.AddRange(holeEdges);
 			}
 
 			var subsubPolygons = new List<RectShape>();
@@ -557,6 +560,9 @@ namespace RectifyUtils
 			{
 				rectangles.Add(new RectifyRectangle(shape));
 			}
+
+			//remove holeEdges, and reduce size factor by 1/2 again.
+			rectangles = ResizeAndReboundRectangles(rectangles, removeEdges);
 
 			List<RectifyRectangle> cellRects = TranslateLatticeRectangles(rectangles, latticeData);
 			//Link Rectangles here.
@@ -699,9 +705,12 @@ namespace RectifyUtils
 			var polygons = FindVertsFromEdges(output);
 
 			var subpolygons = new List<RectShape>();
+			List<RectEdge> removeEdges = new List<RectEdge>();
+
 			foreach (var p in polygons)
 			{
-				subpolygons.AddRange(FirstLevelDecomposition(p));
+				subpolygons.AddRange(FirstLevelDecomposition(p, out List<RectEdge> holeEdges));
+				removeEdges.AddRange(holeEdges);
 			}
 
 			var subsubPolygons = new List<RectShape>();
@@ -715,6 +724,10 @@ namespace RectifyUtils
 			{
 				rectangles.Add(new RectifyRectangle(shape));
 			}
+
+			//remove holeEdges, and reduce size factor by 1/2 again.
+			rectangles = ResizeAndReboundRectangles(rectangles, removeEdges);
+
 
 			//Link Rectangles here.
 			foreach (RectifyRectangle linkRect in rectangles)
@@ -740,13 +753,87 @@ namespace RectifyUtils
 		}
 
 		/// <summary>
+		/// Finds the rectangles joined by the removableEdges, and merges them into a single rectangle. Then, reduces ALL rectangles back down to their original size.
+		/// </summary>
+		/// <param name="rectangles"></param>
+		/// <param name="removeEdges"></param>
+		/// <returns></returns>
+		private static List<RectifyRectangle> ResizeAndReboundRectangles(List<RectifyRectangle> rectangles, List<RectEdge> removeEdges)
+		{
+			foreach (RectEdge re in removeEdges)
+			{
+
+				RectifyRectangle neoRectangle;
+				if (re.FirstPosition.xPos - re.SecondPosition.xPos == 0)
+				{
+					//vertical border
+					//find rectangle with Left / Right border
+					RectifyRectangle leftRect = rectangles.Find(r => r.Right == re.FirstPosition.xPos &&
+					(r.Top == re.FirstPosition.yPos || r.Top == re.SecondPosition.yPos) &&
+					(r.Bottom == re.FirstPosition.yPos || r.Bottom == re.SecondPosition.yPos));
+
+					RectifyRectangle rightRect = rectangles.Find(r => r.Left == re.FirstPosition.xPos &&
+					(r.Top == re.FirstPosition.yPos || r.Top == re.SecondPosition.yPos) &&
+					(r.Bottom == re.FirstPosition.yPos || r.Bottom == re.SecondPosition.yPos));
+
+					if (leftRect.PathGroup != rightRect.PathGroup)
+					{
+						throw new InvalidOperationException("Tried to join two rectangles that shouldn't be rejoined");
+					}
+
+					neoRectangle = new RectifyRectangle(leftRect, rightRect, true);
+
+					rectangles.Remove(leftRect);
+					rectangles.Remove(rightRect);
+					rectangles.Add(neoRectangle);
+				}
+				else
+				{
+					//horizontal border
+					//find rectangle with Top / Bottom border
+					RectifyRectangle topRect = rectangles.Find(r => r.Top == re.FirstPosition.yPos &&
+					(r.Left == re.FirstPosition.xPos || r.Left == re.SecondPosition.xPos) &&
+					(r.Right == re.FirstPosition.xPos || r.Right == re.SecondPosition.xPos));
+
+					RectifyRectangle bottomRect = rectangles.Find(r => r.Bottom == re.FirstPosition.yPos &&
+					(r.Left == re.FirstPosition.xPos || r.Left == re.SecondPosition.xPos) &&
+					(r.Right == re.FirstPosition.xPos || r.Right == re.SecondPosition.xPos));
+
+					if (topRect.PathGroup != bottomRect.PathGroup)
+					{
+						throw new InvalidOperationException("Tried to join two rectangles that shouldn't be rejoined");
+					}
+
+					neoRectangle = new RectifyRectangle(topRect, bottomRect, false);
+
+					rectangles.Remove(topRect);
+					rectangles.Remove(bottomRect);
+					rectangles.Add(neoRectangle);
+				}
+			}
+
+			List<RectifyRectangle> shrinkRectangles = new List<RectifyRectangle>(rectangles.Count);
+			foreach (RectifyRectangle rr in rectangles)
+			{
+				shrinkRectangles.Add(rr.HalveSize());
+			}
+
+
+			return shrinkRectangles;
+		}
+
+		/// <summary>
 		/// For the given RectShape, find pairs of cogrid concave vertices and use this to split the object
 		/// into subpolygons. If no cogrid concave vertices are found, return the input.
 		/// </summary>
 		/// <param name="rectShape"></param>
 		/// <returns></returns>
-		public static List<RectShape> FirstLevelDecomposition(RectShape rectShape)
+		public static List<RectShape> FirstLevelDecomposition(RectShape inputShape, out List<RectEdge> weldedEdges)
 		{
+
+			//account for holes
+			RectShape rectShape = ResolveHoles(inputShape, out weldedEdges);
+
 			//Maintain two separate lists: horizontal cogrid chords, and vertical ones.
 			//if either list is empty, do all of the other list. If both lists have values, have
 			//to bust out the graph theory to figure out which chords to use.
@@ -754,14 +841,6 @@ namespace RectifyUtils
 			List<Vertex> concaves = rectShape.Vertices.FindAll(v => v.IsConcave == true);
 			HashSet<RectEdge> vertEdges = new HashSet<RectEdge>();
 			HashSet<RectEdge> horizEdges = new HashSet<RectEdge>();
-
-			//account for holes
-			concaves.AddRange(rectShape.HoleVertices.FindAll(v => v.IsConcave == true));
-			List<RectEdge> allPerimeters = new List<RectEdge>(rectShape.Perimeter);
-			foreach (RectShape hole in rectShape.Holes)
-			{
-				allPerimeters.AddRange(hole.Perimeter);
-			}
 
 			foreach (Vertex v in concaves)
 			{
@@ -789,7 +868,7 @@ namespace RectifyUtils
 					//look to see if there is an open edge space in any point between the two verts
 					//find an edge in the perimeters where EITHER first or second position have:
 					// the x position equals the vertex x position and has a y Position that's below the bottom vert & above the top vert 
-					RectEdge interveningEdge = allPerimeters.Find(r => (r.FirstPosition.xPos == v.VertPosition.xPos &&
+					RectEdge interveningEdge = rectShape.Perimeter.Find(r => (r.FirstPosition.xPos == v.VertPosition.xPos &&
 																					   r.FirstPosition.yPos < bottomV.VertPosition.yPos &&
 																					   r.FirstPosition.yPos > topV.VertPosition.yPos) ||
 																					   (r.SecondPosition.xPos == v.VertPosition.xPos &&
@@ -799,7 +878,7 @@ namespace RectifyUtils
 					if (interveningEdge != null) continue; //can't construct chord, there's something in the way
 
 					//look to see if the two verts are adjacent on an edge (this may come up on 1x1 holes)
-					RectEdge dupeEdge = allPerimeters.Find(r => r.FirstPosition.Equals(topV.VertPosition) && r.SecondPosition.Equals(bottomV.VertPosition) ||
+					RectEdge dupeEdge = rectShape.Perimeter.Find(r => r.FirstPosition.Equals(topV.VertPosition) && r.SecondPosition.Equals(bottomV.VertPosition) ||
 																r.SecondPosition.Equals(topV.VertPosition) && r.FirstPosition.Equals(bottomV.VertPosition));
 
 					if (dupeEdge != null) continue; //can't construct chord, there's something in the way
@@ -832,7 +911,7 @@ namespace RectifyUtils
 					if (horizEdges.Contains(prospectiveEdge)) continue;
 
 					//look to see if there is an open edge space in any point between the two verts
-					RectEdge interveningEdge = allPerimeters.Find(r => (r.FirstPosition.yPos == v.VertPosition.yPos &&
+					RectEdge interveningEdge = rectShape.Perimeter.Find(r => (r.FirstPosition.yPos == v.VertPosition.yPos &&
 																					   r.FirstPosition.xPos < rightV.VertPosition.xPos &&
 																					   r.FirstPosition.xPos > leftV.VertPosition.xPos) ||
 																					   (r.SecondPosition.yPos == v.VertPosition.yPos &&
@@ -841,7 +920,7 @@ namespace RectifyUtils
 					if (interveningEdge != null) continue; //can't construct chord, there's something in the way
 
 					//look to see if the two verts are adjacent on an edge (this may come up on 1x1 holes)
-					RectEdge dupeEdge = allPerimeters.Find(r => r.FirstPosition.Equals(leftV.VertPosition) && r.SecondPosition.Equals(rightV.VertPosition) ||
+					RectEdge dupeEdge = rectShape.Perimeter.Find(r => r.FirstPosition.Equals(leftV.VertPosition) && r.SecondPosition.Equals(rightV.VertPosition) ||
 																r.SecondPosition.Equals(leftV.VertPosition) && r.FirstPosition.Equals(rightV.VertPosition));
 
 					if (dupeEdge != null) continue; //can't construct chord, there's something in the way
@@ -978,6 +1057,56 @@ namespace RectifyUtils
 			cuttingChords.AddRange(isolatedVertEdges);
 
 			return DecompFromChords(rectShape, cuttingChords);
+		}
+
+		/// <summary>
+		/// find the nearest odd-vertex point between a hole and the perimeter. 
+		/// add a connection between them. This will guarantee a non cogrid chord, and removes
+		/// the hole from having to be dealt with.
+		/// </summary>
+		/// <returns></returns>
+		private static RectShape ResolveHoles(RectShape inputShape, out List<RectEdge> weldedEdges)
+		{
+
+			weldedEdges = new List<RectEdge>(inputShape.Holes.Count);
+			var workingShape = inputShape;
+
+			while (workingShape.Holes.Count > 0)
+			{
+				RectShape nearestHole = null;
+				RectEdge nearestEdge = null;
+				RectEdge joiningEdge = null;
+				int nearestDistance = int.MaxValue;
+
+				foreach (RectShape s in inputShape.Holes)
+				{
+					var searchEdges = s.Perimeter.FindAll(e => e.FirstPosition.xPos % 2 == 1 || e.FirstPosition.yPos % 2 == 1);
+					foreach (RectEdge se in searchEdges)
+					{
+						//only need to look at parent edges that match X or Y because a) we can't do diagonals, and b) diagonal will never be 
+						//closer than axis-aligned because we're inside the shape (aka a hole)
+						var parentEdges = inputShape.Perimeter.FindAll(e => e.FirstPosition.xPos == se.FirstPosition.xPos || e.FirstPosition.yPos == se.FirstPosition.yPos);
+						foreach (RectEdge pe in parentEdges)
+						{
+							var xDiff = Math.Abs(se.FirstPosition.xPos - pe.FirstPosition.xPos);
+							var yDiff = Math.Abs(se.FirstPosition.yPos - pe.FirstPosition.yPos);
+							if (xDiff + yDiff < nearestDistance)
+							{
+								nearestHole = s;
+								nearestEdge = se;
+								joiningEdge = pe;
+								nearestDistance = xDiff + yDiff;
+							}
+						}
+					}
+				}
+
+				var weldedEdge = new RectEdge(nearestEdge.FirstPosition, joiningEdge.FirstPosition, EdgeType.None);
+				weldedEdges.Add(weldedEdge);
+
+				workingShape = CombineShapesUsingEdge(inputShape, nearestHole, weldedEdge);
+			}
+			return workingShape;
 		}
 
 		/// <summary>
@@ -2771,12 +2900,13 @@ namespace RectifyUtils
 		/// <summary>
 		/// At this point, we have reduced any complex shapes (holes) into multiple simple, possibly convex, shapes instead.
 		/// This is good enough to run the Rectilinear decomposition to reduce them to... rectangles. Before we can do that, though,
-		/// wee need to get the set of verts and determine their concavity.
+		/// we need to get the set of verts and determine their concavity.
 		/// </summary>
 		/// <param name="input"></param>
 		/// <returns></returns>
 		public static List<RectShape> FindVertsFromEdges(List<RectShape> input)
 		{
+
 			foreach (RectShape shape in input)
 			{
 				FilloutVerts(shape);
@@ -2789,7 +2919,14 @@ namespace RectifyUtils
 				shape.UpdateHoleVerts();
 			}
 
-			return input;
+			List<RectShape> doubledInput = new List<RectShape>(input.Count);
+			foreach (RectShape shape in input)
+			{
+				doubledInput.Add(shape.DoubleSize());
+			}
+
+
+			return doubledInput;
 		}
 
 		private static RectShape FilloutVerts(RectShape shape)

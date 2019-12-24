@@ -356,6 +356,64 @@ namespace RectifyUtils
 				}
 			}
 		}
+
+		/// <summary>
+		/// Returns a RectShape that is the same shape as the previous, but has double the edges & dimensions
+		/// (this is so we can use .5 unit increments while still using integers)
+		/// </summary>
+		/// <returns></returns>
+		internal RectShape DoubleSize()
+		{
+			List<RectEdge> doubledPerimeter = new List<RectEdge>(this.Perimeter.Count * 2);
+
+			//this will be replaced, but saves us a null check below
+			RectEdge lastEdge = Perimeter[Perimeter.Count - 1];
+			foreach (RectEdge re in Perimeter)
+			{
+
+				var newFirstPosition = re.FirstPosition * 2;
+				var newMiddlePosition = newFirstPosition + re.HeadingVector;
+				var newLastPosition = re.SecondPosition * 2;
+
+				var firstNewEdge = new RectEdge(newFirstPosition, newMiddlePosition, re.EdgeType);
+				var secondNewEdge = new RectEdge(newMiddlePosition, newLastPosition, re.EdgeType);
+
+				doubledPerimeter.Add(firstNewEdge);
+				doubledPerimeter.Add(secondNewEdge);
+
+				lastEdge.Next = firstNewEdge;
+				firstNewEdge.Next = secondNewEdge;
+
+				lastEdge = secondNewEdge;
+			}
+			//and set the first perimeter edge so it's a loop
+			lastEdge.Next = doubledPerimeter[0];
+
+			List<Vertex> doubledVertices = new List<Vertex>(this.Vertices.Count);
+			foreach (Vertex v in Vertices)
+			{
+				doubledVertices.Add(new Vertex(v.VertPosition * 2, v.IsConcave));
+			}
+
+			List<RectShape> doubledHoles = new List<RectShape>(this.Holes.Count);
+			foreach (RectShape hole in Holes)
+			{
+				doubledHoles.Add(hole.DoubleSize());
+			}
+
+
+			RectShape doubledOut = new RectShape(this.PathGroup)
+			{
+				//vertices
+				Vertices = doubledVertices,
+				//perimeter
+				Perimeter = doubledPerimeter,
+				//holes
+				Holes = doubledHoles
+			};
+
+			return doubledOut;
+		}
 	}
 
 
@@ -562,6 +620,71 @@ namespace RectifyUtils
 		}
 
 		/// <summary>
+		/// Merges two adjacent rectangles of equal height into one
+		/// </summary>
+		/// <param name="leftRect"></param>
+		/// <param name="rightRect"></param>
+		public RectifyRectangle(RectifyRectangle bottomLeftRect, RectifyRectangle topRightRect, bool shareVerticalEdge)
+		{
+
+			this.bottomLeft = bottomLeftRect.bottomLeft;
+			this.topRight = topRightRect.topRight;
+			this.PathGroup = bottomLeftRect.PathGroup;
+
+			if (shareVerticalEdge)
+			{
+				//width is added, height is the same
+				this.LeftEdge = new RectNeighbor[bottomLeftRect.Height];
+				this.RightEdge = new RectNeighbor[bottomLeftRect.Height];
+
+				for (int i = 0; i < bottomLeftRect.Height; i++)
+				{
+					LeftEdge[i] = new RectNeighbor(bottomLeftRect.LeftEdge[i].Neighbor, bottomLeftRect.LeftEdge[i].EdgeType);
+					RightEdge[i] = new RectNeighbor(topRightRect.RightEdge[i].Neighbor, topRightRect.RightEdge[i].EdgeType);
+				}
+
+				this.TopEdge = new RectNeighbor[bottomLeftRect.Width + topRightRect.Width];
+				this.BottomEdge = new RectNeighbor[bottomLeftRect.Width + topRightRect.Width];
+				for (int i = 0; i < bottomLeftRect.Width; i++)
+				{
+					TopEdge[i] = new RectNeighbor(bottomLeftRect.TopEdge[i].Neighbor, bottomLeftRect.TopEdge[i].EdgeType);
+					BottomEdge[i] = new RectNeighbor(bottomLeftRect.BottomEdge[i].Neighbor, bottomLeftRect.BottomEdge[i].EdgeType);
+				}
+				for (int i = 0; i < topRightRect.Width; i++)
+				{
+					TopEdge[bottomLeftRect.Width + i] = new RectNeighbor(topRightRect.TopEdge[i].Neighbor, topRightRect.TopEdge[i].EdgeType);
+					BottomEdge[bottomLeftRect.Width + i] = new RectNeighbor(topRightRect.BottomEdge[i].Neighbor, topRightRect.BottomEdge[i].EdgeType);
+				}
+			}
+			else
+			{
+				//width is the same, height is added 
+				this.LeftEdge = new RectNeighbor[bottomLeftRect.Height + topRightRect.Height];
+				this.RightEdge = new RectNeighbor[bottomLeftRect.Height + topRightRect.Height];
+
+				for (int i = 0; i < bottomLeftRect.Height; i++)
+				{
+					LeftEdge[i] = new RectNeighbor(bottomLeftRect.LeftEdge[i].Neighbor, bottomLeftRect.LeftEdge[i].EdgeType);
+					RightEdge[i] = new RectNeighbor(bottomLeftRect.RightEdge[i].Neighbor, bottomLeftRect.RightEdge[i].EdgeType);
+				}
+				for (int i = 0; i < topRightRect.Height; i++)
+				{
+					LeftEdge[i + bottomLeftRect.Height] = new RectNeighbor(topRightRect.LeftEdge[i].Neighbor, topRightRect.LeftEdge[i].EdgeType);
+					RightEdge[i + bottomLeftRect.Height] = new RectNeighbor(topRightRect.RightEdge[i].Neighbor, topRightRect.RightEdge[i].EdgeType);
+				}
+
+				this.TopEdge = new RectNeighbor[bottomLeftRect.Width];
+				this.BottomEdge = new RectNeighbor[bottomLeftRect.Width];
+
+				for (int i = 0; i < bottomLeftRect.Width; i++)
+				{
+					BottomEdge[i] = new RectNeighbor(bottomLeftRect.BottomEdge[i].Neighbor, bottomLeftRect.BottomEdge[i].EdgeType);
+					TopEdge[i] = new RectNeighbor(topRightRect.TopEdge[i].Neighbor, topRightRect.TopEdge[i].EdgeType);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Adds references to the neighbors at the corresponding edgePair arrays.
 		/// </summary>
 		/// <param name="neighbors"></param>
@@ -701,6 +824,70 @@ namespace RectifyUtils
 			}
 
 			return myEdge;
+		}
+
+		/// <summary>
+		/// Returns a rectangle that is half the height/width of the original.
+		/// Will throw an error if data would be lost
+		/// </summary>
+		/// <returns></returns>
+		internal RectifyRectangle HalveSize()
+		{
+			if (this.Width % 2 == 1 || this.Height % 2 == 1)
+			{
+				throw new ArgumentOutOfRangeException("Can never halve a rectangle with odd height or width");
+			}
+
+			//returns a new RectifyRectangle that is half the size of this rectangle.
+			Position botLeft = new Position(this.bottomLeft.xPos / 2, this.bottomLeft.yPos / 2);
+			Position topRight = new Position(this.topRight.xPos / 2, this.topRight.yPos / 2);
+
+			RectifyRectangle shrinkRect = new RectifyRectangle(botLeft, topRight, this.PathGroup);
+
+			for (int i = 0; i < Width / 2; i++)
+			{
+				//neighbors will need to be reset, so ignore for now
+				shrinkRect.TopEdge[i] = new RectNeighbor(null, this.TopEdge[i * 2].EdgeType);
+				shrinkRect.BottomEdge[i] = new RectNeighbor(null, this.BottomEdge[i * 2].EdgeType);
+
+#if debug
+				if (this.TopEdge[i * 2].Neighbor != this.TopEdge[i * 2 + 1].Neighbor ||
+					this.TopEdge[i * 2].EdgeType != this.TopEdge[i * 2 + 1].EdgeType)
+				{
+					throw new ArgumentOutOfRangeException("Top Edge lost data during halving");
+				}
+
+				if (this.BottomEdge[i * 2].Neighbor != this.BottomEdge[i * 2 + 1].Neighbor ||
+					this.BottomEdge[i * 2].EdgeType != this.BottomEdge[i * 2 + 1].EdgeType)
+				{
+					throw new ArgumentOutOfRangeException("Bottom Edge lost data during halving");
+				}
+#endif
+			}
+
+			for (int i = 0; i < Height / 2; i++)
+			{
+				//neighbors will need to be reset, so ignore for now
+				shrinkRect.LeftEdge[i] = new RectNeighbor(null, this.LeftEdge[i * 2].EdgeType);
+				shrinkRect.RightEdge[i] = new RectNeighbor(null, this.RightEdge[i * 2].EdgeType);
+
+#if debug
+				if (this.LeftEdge[i * 2].Neighbor != this.LeftEdge[i * 2 + 1].Neighbor ||
+					this.LeftEdge[i * 2].EdgeType != this.LeftEdge[i * 2 + 1].EdgeType)
+				{
+					throw new ArgumentOutOfRangeException("Left Edge lost data during halving");
+				}
+
+				if (this.RightEdge[i * 2].Neighbor != this.RightEdge[i * 2 + 1].Neighbor ||
+					this.RightEdge[i * 2].EdgeType != this.RightEdge[i * 2 + 1].EdgeType)
+				{
+					throw new ArgumentOutOfRangeException("Right Edge lost data during halving");
+				}
+#endif
+			}
+
+			return shrinkRect;
+
 		}
 
 		///// <summary>
@@ -1265,6 +1452,11 @@ namespace RectifyUtils
 		public static Position operator -(Position a, Position b)
 		{
 			return new Position(a.xPos - b.xPos, a.yPos - b.yPos);
+		}
+
+		public static Position operator *(Position a, int multiplier)
+		{
+			return new Position(a.xPos * multiplier, a.yPos * multiplier);
 		}
 
 		public override string ToString()
