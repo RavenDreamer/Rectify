@@ -248,6 +248,14 @@ namespace RectifyTest
 
 		}
 
+		[TestMethod]
+		[TestCategory("LatticePathfinder")]
+		public void StardewFarmPathingTest()
+		{
+			//var result = Rectify.MakeRectangles(TestData.StardewTestData(), new Position(0, 0), new Position(55, 39));
+			var result = Rectify.MakeRectangles(TestData.StardewTestData(), new Position(0, 0), new Position(50, 25));
+			Assert.IsTrue(1 == 1);
+		}
 
 		[TestMethod]
 		[TestCategory("LatticePathfinder")]

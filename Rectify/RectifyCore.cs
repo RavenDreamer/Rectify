@@ -42,10 +42,10 @@ namespace RectifyUtils
 
 			for (int x = lowX; x < highX; x++)
 			{
-				int bigX = (2 * x) + 1;
+				int bigX = (2 * (x - lowX)) + 1;
 				for (int y = lowY; y < highY; y++)
 				{
-					int bigY = (2 * y) + 1;
+					int bigY = (2 * (y - lowY)) + 1;
 
 					//start by initializing to the main square
 					var centerPath = latticeData[x, y].PathGroup();
