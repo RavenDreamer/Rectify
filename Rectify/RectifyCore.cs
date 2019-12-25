@@ -1588,12 +1588,21 @@ namespace RectifyUtils
 		private static List<RectShape> DecompFromChords(RectShape rectShape, List<RectEdge> chords)
 		{
 
+			RectifyLogger.RecordShape(rectShape);
+
+			foreach (RectShape h in rectShape.Holes)
+			{
+				RectifyLogger.RecordHole(h);
+			}
+
 			List<RectShape> retShapes = new List<RectShape>() { rectShape };
 			List<RectEdge> usedChords = new List<RectEdge>();
 
 			while (chords.Count > 0)
 			{
 				RectEdge rEdge = chords[0];
+
+				RectifyLogger.RecordChordCut(rEdge);
 
 				List<RectShape> shapesToAdd = new List<RectShape>();
 				RectShape shapeToRemove = null;
