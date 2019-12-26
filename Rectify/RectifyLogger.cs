@@ -21,7 +21,7 @@ namespace RectifyUtils
 
 		internal static void RecordShape(RectShape rectShape)
 		{
-
+#if debug
 			string pointPerim = "RECTSHAPE:";
 			foreach (RectEdge perimEdge in rectShape.Perimeter)
 			{
@@ -29,15 +29,18 @@ namespace RectifyUtils
 			}
 
 			StringLog.Add(pointPerim);
+#endif
 		}
 
 		internal static void RecordChordCut(RectEdge rectEdge)
 		{
+#if debug
 			string chordNote = "CHORDEDGE:";
 			chordNote += rectEdge.FirstPosition.xPos + "," + rectEdge.FirstPosition.yPos + "|";
 			chordNote += rectEdge.SecondPosition.xPos + "," + rectEdge.SecondPosition.yPos + "|";
 
 			StringLog.Add(chordNote);
+#endif
 		}
 
 		static public string PrintLog()
@@ -47,6 +50,7 @@ namespace RectifyUtils
 
 		internal static void RecordHole(RectShape hole)
 		{
+#if debug
 			string pointPerim = "RECTHOLE:";
 			foreach (RectEdge perimEdge in hole.Perimeter)
 			{
@@ -55,5 +59,6 @@ namespace RectifyUtils
 
 			StringLog.Add(pointPerim);
 		}
+#endif
 	}
 }
