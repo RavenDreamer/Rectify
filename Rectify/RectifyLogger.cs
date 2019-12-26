@@ -8,6 +8,17 @@ namespace RectifyUtils
 
 		static List<string> StringLog { get; set; } = new List<string>();
 
+		internal static string OutputShape(RectShape rectShape)
+		{
+			string pointPerim = "RECTSHAPE:";
+			foreach (RectEdge perimEdge in rectShape.Perimeter)
+			{
+				pointPerim += perimEdge.FirstPosition.xPos + "," + perimEdge.FirstPosition.yPos + "|";
+			}
+
+			return pointPerim;
+		}
+
 		internal static void RecordShape(RectShape rectShape)
 		{
 

@@ -1037,6 +1037,23 @@ namespace RectifyUtils
 		{
 			return "First: " + FirstPosition.ToString() + " Second: " + SecondPosition.ToString() + " Edge: " + EdgeType.ToString();
 		}
+
+		internal static Direction GetOppositeHeading(Direction headingDirection)
+		{
+			switch (headingDirection)
+			{
+				case Direction.East:
+					return Direction.West;
+				case Direction.North:
+					return Direction.South;
+				case Direction.South:
+					return Direction.North;
+				case Direction.West:
+					return Direction.East;
+			}
+
+			throw new NotImplementedException("Given Direction doesn't have an inverse");
+		}
 	}
 
 	/// <summary>

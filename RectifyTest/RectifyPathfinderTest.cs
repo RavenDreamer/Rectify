@@ -249,12 +249,13 @@ namespace RectifyTest
 		}
 
 		[TestMethod]
-		[TestCategory("LatticePathfinder")]
+		[TestCategory("From GridLattice")]
 		public void StardewFarmPathingTest()
 		{
 			//var result = Rectify.MakeRectangles(TestData.StardewTestData(), new Position(0, 0), new Position(55, 39));
-			var result = Rectify.MakeRectangles(TestData.StardewTestData(), new Position(0, 0), new Position(50, 25));
-			Assert.IsTrue(1 == 1);
+			//var result = Rectify.MakeRectangles(TestData.StardewTestData(), new Position(0, 0), new Position(50, 25));
+			var result = Rectify.MakeRectangles(TestData.StardewTestData());
+			Assert.AreEqual(195, result.Count);
 		}
 
 		[TestMethod]

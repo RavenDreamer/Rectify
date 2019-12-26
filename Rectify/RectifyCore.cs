@@ -1642,8 +1642,34 @@ namespace RectifyUtils
 				//step 1, find the two edges corresponding to the current chord
 				foreach (RectShape rShape in retShapes)
 				{
-					var firstIncision = rShape.Perimeter.Find(edge => edge.SecondPosition.Equals(rEdge.FirstPosition));
-					var secondIncision = rShape.Perimeter.Find(edge => edge.SecondPosition.Equals(rEdge.SecondPosition));
+					List<RectEdge> firstIncisionBatch;
+					List<RectEdge> secondIncisionBatch;
+
+					//var firstIncisionBatch = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.FirstPosition));
+					//var secondIncisionBatch = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.SecondPosition));
+
+
+
+					if (rEdge.FirstPosition.xPos - rEdge.SecondPosition.xPos == 0)
+					{
+						//vertical cut
+						//for a vertical cut, the firstIncision heading is north or west, and the secondIncision is south or east
+						firstIncisionBatch = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.FirstPosition) && (edge.HeadingDirection == Direction.West || edge.HeadingDirection == Direction.North)); //
+						secondIncisionBatch = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.SecondPosition) && (edge.HeadingDirection == Direction.East || edge.HeadingDirection == Direction.South)); //
+					}
+					else
+					{
+						//horizontal cut
+						//for a horizontal cut, the first incision is always north or east, and the secondIncision is south or west
+						firstIncisionBatch = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.FirstPosition) && (edge.HeadingDirection == Direction.East || edge.HeadingDirection == Direction.North)); //
+						secondIncisionBatch = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.SecondPosition) && (edge.HeadingDirection == Direction.West || edge.HeadingDirection == Direction.South)); //
+					}
+
+					DisambiguateIncisions(firstIncisionBatch, secondIncisionBatch, out RectEdge firstIncision, out RectEdge secondIncision);
+
+					//
+
+					//int count = rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.SecondPosition)).Count + rShape.Perimeter.FindAll(edge => edge.SecondPosition.Equals(rEdge.FirstPosition)).Count;
 
 					if (firstIncision != null && secondIncision != null)
 					{
@@ -1894,6 +1920,62 @@ namespace RectifyUtils
 			}
 
 			return retShapes;
+
+		}
+
+		/// <summary>
+		/// Given a chord to cut and a list of all perimeter edges matching one of those verts, determine which verts to use.
+		/// </summary>
+		/// <param name="firstIncisionBatch"></param>
+		/// <param name="secondIncisionBatch"></param>
+		/// <param name="chord"></param>
+		/// <param name="firstIncision"></param>
+		/// <param name="secondIncision"></param>
+		private static void DisambiguateIncisions(List<RectEdge> firstIncisionBatch, List<RectEdge> secondIncisionBatch, out RectEdge firstIncision, out RectEdge secondIncision)
+		{
+
+
+			if (firstIncisionBatch.Count == 1 && secondIncisionBatch.Count == 1)
+			{
+				firstIncision = firstIncisionBatch[0];
+				secondIncision = secondIncisionBatch[0];
+				return;
+			}
+			else if (firstIncisionBatch.Count == 1 && secondIncisionBatch.Count != 0)
+			{
+				//use firstIncision, pick whichever secondIncision heading is opposite
+				firstIncision = firstIncisionBatch[0];
+				secondIncision = secondIncisionBatch.Find(i => i.HeadingDirection == RectEdge.GetOppositeHeading(firstIncisionBatch[0].HeadingDirection));
+				return;
+			}
+			else if (firstIncisionBatch.Count != 0 && secondIncisionBatch.Count == 1)
+			{
+				//use secondIncision, pick whichever firstIncision heading is opposite
+				firstIncision = firstIncisionBatch.Find(i => i.HeadingDirection == RectEdge.GetOppositeHeading(secondIncisionBatch[0].HeadingDirection));
+				secondIncision = secondIncisionBatch[0];
+				return;
+			}
+			else if (firstIncisionBatch.Count == 0 && secondIncisionBatch.Count != 0)
+			{
+				firstIncision = null;
+				//this is meaningless, because we won't be joining this iteration
+				secondIncision = secondIncisionBatch[0];
+				return;
+			}
+			else if (firstIncisionBatch.Count != 0 && secondIncisionBatch.Count == 0)
+			{
+				firstIncision = firstIncisionBatch[0];
+				secondIncision = null;
+				return;
+			}
+			else if (firstIncisionBatch.Count == 0 && secondIncisionBatch.Count == 0)
+			{
+				firstIncision = null;
+				secondIncision = null;
+				return;
+			}
+
+			throw new NotImplementedException("Could not disambiguate incision edges. Better luck next time.");
 
 		}
 
