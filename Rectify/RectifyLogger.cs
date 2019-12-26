@@ -58,7 +58,7 @@ namespace RectifyUtils
 			}
 
 			StringLog.Add(pointPerim);
-		}
 #endif
+		}
 	}
 }
