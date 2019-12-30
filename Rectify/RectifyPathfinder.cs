@@ -784,7 +784,7 @@ namespace RectifyUtils
 			//}
 			//construct path query to see if it's in the cache
 			PathQuery cacheQuery = new PathQuery(startRect, endRect, edgeTypesFromMask, GetNearestNeighbors(startRect, startPosition, edgeTypesFromMask), GetNearestNeighbors(endRect, endPosition, edgeTypesFromMask), null);
-			var cacheResult = pathCache.Find(c => c.Equals(cacheQuery));
+			PathQuery cacheResult = null; // pathCache.Find(c => c.Equals(cacheQuery));
 			if (cacheResult != null)
 			{
 				//return cached path w/ current start / end position

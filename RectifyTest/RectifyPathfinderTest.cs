@@ -53,24 +53,30 @@ namespace RectifyTest
 		[TestCategory("Pathfinder")]
 		public void CachePathTest()
 		{
+			//The caching was removed, so this test will fail. The prior method of caching worked _pretty_ well, but needs some refinements.
+			//could run into an issue where navigating to two adjacent cells cut the corner due to the caching optimistically assuming the diagonal could
+			//be taken when it could not. (See TestSingleCellObstruction)
 
-			List<RectDetectPair> edges = new List<RectDetectPair>
-			{
-				new RectDetectPair(0, 3, EdgeType.Aperture)
-			};
+			//I suspect there's a better way to handle caching. Perhaps some way based on the distance from the rectangle traversal edges?
 
-			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			//List<RectDetectPair> edges = new List<RectDetectPair>
+			//{
+			//	new RectDetectPair(0, 3, EdgeType.Aperture)
+			//};
 
-			var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), out PathfinderMetrics metrics, (int)EdgeType.None | (int)EdgeType.Aperture);
-			Assert.AreEqual(44, resultPath.Count, "fail to find a path as expected");
+			//var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
-			//same overall path, this should hit the cache.
-			resultPath = pathfinder.CalculatePath(new Position(109, 145), new Position(150, 75), out PathfinderMetrics metricsAfterCache, (int)EdgeType.None | (int)EdgeType.Aperture);
+			//var pathfinder = new RectifyPathfinder(result, false);
 
-			Assert.AreNotEqual(0, metrics.VisitedNodes, "pathfound w/o traversing nodes somehow");
-			Assert.AreEqual(0, metricsAfterCache.VisitedNodes, "pathfound w/o using the cache as intended");
+			//var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), out PathfinderMetrics metrics, (int)EdgeType.None | (int)EdgeType.Aperture);
+			//Assert.AreEqual(44, resultPath.Count, "fail to find a path as expected");
+
+			////same overall path, this should hit the cache.
+			//resultPath = pathfinder.CalculatePath(new Position(109, 145), new Position(150, 75), out PathfinderMetrics metricsAfterCache, (int)EdgeType.None | (int)EdgeType.Aperture);
+
+			//Assert.AreNotEqual(0, metrics.VisitedNodes, "pathfound w/o traversing nodes somehow");
+			//Assert.AreEqual(0, metricsAfterCache.VisitedNodes, "pathfound w/o using the cache as intended");
 
 		}
 
@@ -246,6 +252,20 @@ namespace RectifyTest
 			resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(2, 0));
 			Assert.AreEqual(3, resultPath.Count, "Did not path around wall edge as expected");
 
+		}
+
+		[TestMethod]
+		[TestCategory("LatticePathfinder")]
+		public void TestSingleCellObstruction()
+		{
+			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10));
+			var pathfinder = new RectifyPathfinder(result, true);
+
+			pathfinder.ReplaceCellAt(new Position(2, 4), 7);
+			var resultPath = pathfinder.CalculatePath(new Position(3, 4), new Position(1, 3));
+			Assert.AreEqual(4, resultPath.Count, "path was not length 4 as expected");
+			resultPath = pathfinder.CalculatePath(new Position(3, 4), new Position(1, 4));
+			Assert.AreEqual(5, resultPath.Count, "path was not length 5 as expected");
 		}
 
 		[TestMethod]
