@@ -60,23 +60,23 @@ namespace RectifyTest
 			//I suspect there's a better way to handle caching. Perhaps some way based on the distance from the rectangle traversal edges?
 
 
-			//List<RectDetectPair> edges = new List<RectDetectPair>
-			//{
-			//	new RectDetectPair(0, 3, EdgeType.Aperture)
-			//};
+			List<RectDetectPair> edges = new List<RectDetectPair>
+			{
+				new RectDetectPair(0, 3, EdgeType.Aperture)
+			};
 
-			//var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
+			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
-			//var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, false);
 
-			//var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), out PathfinderMetrics metrics, (int)EdgeType.None | (int)EdgeType.Aperture);
-			//Assert.AreEqual(44, resultPath.Count, "fail to find a path as expected");
+			var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), out PathfinderMetrics metrics, (int)EdgeType.None | (int)EdgeType.Aperture);
+			Assert.AreEqual(44, resultPath.Count, "fail to find a path as expected");
 
-			////same overall path, this should hit the cache.
-			//resultPath = pathfinder.CalculatePath(new Position(109, 145), new Position(150, 75), out PathfinderMetrics metricsAfterCache, (int)EdgeType.None | (int)EdgeType.Aperture);
+			//same overall path, this should hit the cache.
+			resultPath = pathfinder.CalculatePath(new Position(109, 145), new Position(150, 75), out PathfinderMetrics metricsAfterCache, (int)EdgeType.None | (int)EdgeType.Aperture);
 
-			//Assert.AreNotEqual(0, metrics.VisitedNodes, "pathfound w/o traversing nodes somehow");
-			//Assert.AreEqual(0, metricsAfterCache.VisitedNodes, "pathfound w/o using the cache as intended");
+			Assert.AreNotEqual(0, metrics.VisitedNodes, "pathfound w/o traversing nodes somehow");
+			Assert.AreEqual(0, metricsAfterCache.VisitedNodes, "pathfound w/o using the cache as intended");
 
 		}
 
@@ -385,5 +385,31 @@ namespace RectifyTest
 			resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(0, 5));
 			Assert.AreEqual(0, resultPath.Count, "Found previous path, cache not invalidated");
 		}
+
+		[TestMethod]
+		[TestCategory("AStarPathfinder")]
+		public void TestAStarBlockPathsLattice()
+		{
+			var result = GridLatticeTestData.KeyholeApertureLattice();
+
+			var pathfinder = new RectifyAStarPathfinder(result);
+
+			var resultPath = pathfinder.CalculatePath(new Position(2, 3), new Position(2, 0));
+			Assert.AreEqual(4, resultPath.Count, "Did not find a path where expected");
+
+			result[2, 2, Direction.North] = new RectGridCell(8, 1);
+			pathfinder = new RectifyAStarPathfinder(result);
+
+			resultPath = pathfinder.CalculatePath(new Position(2, 2), new Position(2, 3));
+			Assert.AreEqual(0, resultPath.Count, "did not find a path when expected");
+
+			resultPath = pathfinder.CalculatePath(new Position(2, 2), new Position(2, 1));
+			Assert.AreEqual(2, resultPath.Count, "found a path when none expected");
+
+			resultPath = pathfinder.CalculatePath(new Position(1, 2), new Position(2, 2));
+			Assert.AreEqual(2, resultPath.Count, "Did not find a path where expected");
+
+		}
+
 	}
 }
