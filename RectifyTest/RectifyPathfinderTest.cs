@@ -10,13 +10,16 @@ namespace RectifyTest
 	[TestClass]
 	public class RectifyPathfinderTest
 	{
+		public static PathfinderParameters StandardParams { get; set; } = new PathfinderParameters() { DoReachabilityCheck = true };
+		public static PathfinderParameters StandardLatticeParams { get; set; } = new PathfinderParameters() { DoReachabilityCheck = true, UsesLattice = true };
+
 		[TestMethod]
 		[TestCategory("Pathfinder")]
 		public void BasicPathfinderTest()
 		{
 			var result = Rectify.MakeRectangles(TestData.OneDRectangleTest(), DataLayout.CodeInitializedArray);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 7), new Position(6, 7), (int)EdgeType.None);
 			Assert.AreEqual(5, resultPath.Count, "Didn't find straight-line path as expected");
@@ -31,7 +34,7 @@ namespace RectifyTest
 		{
 			var result = Rectify.MakeRectangles(TestData.OneDRectangleTest(), DataLayout.CodeInitializedArray);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 6), new Position(7, 6), (int)EdgeType.None + (int)EdgeType.Wall);
 			Assert.AreEqual(5, resultPath.Count, "Didn't find straight-line path as expected");
@@ -43,14 +46,14 @@ namespace RectifyTest
 		{
 			var result = Rectify.MakeRectangles(TestData.OneDRectangleTest(), DataLayout.CodeInitializedArray);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 1), new Position(3, 6), (int)EdgeType.None);
 			Assert.AreEqual(0, resultPath.Count, "Didn't fail to find a path as expected");
 		}
 
-		[TestMethod]
-		[TestCategory("Pathfinder")]
+		//[TestMethod]
+		//[TestCategory("Pathfinder")]
 		public void CachePathTest()
 		{
 			//The caching was removed, so this test will fail. The prior method of caching worked _pretty_ well, but needs some refinements.
@@ -67,7 +70,7 @@ namespace RectifyTest
 
 			var result = Rectify.MakeRectangles(TestData.UnityModifiedDesertTitans(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(109, 147), new Position(150, 75), out PathfinderMetrics metrics, (int)EdgeType.None | (int)EdgeType.Aperture);
 			Assert.AreEqual(44, resultPath.Count, "fail to find a path as expected");
@@ -92,7 +95,7 @@ namespace RectifyTest
 
 			var result = Rectify.MakeRectangles(TestData.LPathTest(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(1, 6), new Position(7, 0), (int)EdgeType.None | (int)EdgeType.Aperture);
 			Assert.AreNotEqual(13, resultPath.Count, "failed to find a path as expected");
@@ -111,7 +114,7 @@ namespace RectifyTest
 
 			var result = Rectify.MakeRectangles(TestData.SealedRoomTest(), DataLayout.CodeInitializedArray, edgeOverrides: edges);
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(3, 2), (int)EdgeType.None | (int)EdgeType.Aperture);
 			Assert.AreNotEqual(0, resultPath.Count, "failed to find a path as expected");
@@ -124,7 +127,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(TestData.UniformRectangle(), DataLayout.CodeInitializedArray);
 			Assert.AreEqual(1, result.Count, "Did not get single rectangle as expected");
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			pathfinder.ReplaceCellAt(new Position(2, 2), 4);
 
@@ -142,7 +145,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(TestData.BigTorusTest(), DataLayout.CodeInitializedArray);
 			Assert.AreEqual(9, result.Count, "Did not get 9 rectangles as expected");
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			pathfinder.ReplaceCellAt(new Position(3, 3), 4);
 
@@ -163,7 +166,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(TestData.KeyholeTest(), DataLayout.CodeInitializedArray);
 			Assert.AreEqual(5, result.Count, "Did not get 5 initial rectangles as expected");
 
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			pathfinder.ReplaceCellAt(new Position(2, 2), 2);
 
@@ -190,7 +193,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(GridLatticeTestData.VertKeyholeApertureLattice());
 			Assert.AreEqual(2, result.Count, "Did not get 2 initial rectangles as expected");
 
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(3, 2), new Position(1, 2));
 			Assert.AreEqual(3, resultPath.Count, "Did not find a path where expected");
@@ -209,7 +212,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(GridLatticeTestData.KeyholeApertureLattice());
 			Assert.AreEqual(2, result.Count, "Did not get 2 initial rectangles as expected");
 
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(2, 3), new Position(2, 1));
 			Assert.AreEqual(3, resultPath.Count, "Did not find a path where expected");
@@ -236,7 +239,7 @@ namespace RectifyTest
 		public void SequentialEdgeAdditionTest()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice());
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			//add edges to the same cell one after another
 
@@ -259,7 +262,7 @@ namespace RectifyTest
 		public void TestSingleCellObstruction()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10));
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			pathfinder.ReplaceCellAt(new Position(2, 4), 7);
 			var resultPath = pathfinder.CalculatePath(new Position(3, 4), new Position(1, 3));
@@ -283,7 +286,7 @@ namespace RectifyTest
 		public void BiggerSequentialEdgeAdditionTest()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10));
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			//add edges to the same cell one after another
 
@@ -305,7 +308,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
 			Assert.AreEqual(14, result.Count, "Did not get 23 initial rectangles as expected");
 
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(1, 0));
 			Assert.AreEqual(2, resultPath.Count, "Did not find a path of 2 where expected");
@@ -318,7 +321,7 @@ namespace RectifyTest
 		public void TestNoPathNecessary()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.HorizBisectedLattice());
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(2, 0), new Position(2, 4));
 			Assert.AreEqual(0, resultPath.Count, "Did not generate a zero path as expected");
@@ -335,7 +338,7 @@ namespace RectifyTest
 		public void TestPathAfterNewEdges()
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice(10, 10));
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			for (int i = 0; i < 10; i++)
 			{
@@ -357,7 +360,7 @@ namespace RectifyTest
 		{
 			var result = Rectify.MakeRectangles(GridLatticeTestData.CornersLattice());
 
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(3, 6), new Position(6, 4));
 
@@ -371,7 +374,7 @@ namespace RectifyTest
 		public void TestCacheInvalidated()
 		{
 			var result = Rectify.MakeRectangles(TestData.BigKeyholeTest(), DataLayout.CodeInitializedArray);
-			var pathfinder = new RectifyPathfinder(result, false);
+			var pathfinder = new RectifyPathfinder(result, StandardParams);
 
 			var resultPath = pathfinder.CalculatePath(new Position(0, 0), new Position(0, 5));
 			Assert.AreEqual(8, resultPath.Count, "Did not find a path where expected");

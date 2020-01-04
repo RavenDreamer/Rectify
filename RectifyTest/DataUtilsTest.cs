@@ -14,6 +14,9 @@ namespace RectifyTest
 	public class DataUtilsTest
 	{
 
+		public static PathfinderParameters StandardParams { get; set; } = new PathfinderParameters() { DoReachabilityCheck = true };
+		public static PathfinderParameters StandardLatticeParams { get; set; } = new PathfinderParameters() { DoReachabilityCheck = true, UsesLattice = true };
+
 		[TestMethod]
 		[TestCategory("DataUtils")]
 		public void TwoDArrayInitializedDataTest()
@@ -43,7 +46,7 @@ namespace RectifyTest
 			var result = Rectify.MakeRectangles(GridLatticeTestData.EmptyGridLattice());
 			Assert.AreEqual(1, result.Count, "Did not get 1 initial rectangles as expected");
 
-			var pathfinder = new RectifyPathfinder(result, true);
+			var pathfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 			var bounds = pathfinder.GetRectBordersFromPoint(new Position(0, 0));
 			Assert.AreEqual(3, bounds.Item2.xPos, "did not get 3 width as expected");
@@ -55,7 +58,7 @@ namespace RectifyTest
 			result = Rectify.MakeRectangles(altLattice);
 			//cell at 0,0; the rest of the row (1,0 -> 10,0), and the rest of the grid (0,1 -> 10,10)
 			Assert.AreEqual(3, result.Count, "Did not get 3 rectangles as expected");
-			var altfinder = new RectifyPathfinder(result, true);
+			var altfinder = new RectifyPathfinder(result, StandardLatticeParams);
 
 		}
 

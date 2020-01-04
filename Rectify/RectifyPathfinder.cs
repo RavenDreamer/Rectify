@@ -22,8 +22,17 @@ namespace RectifyUtils
 
 	}
 
+	public class PathfinderParameters
+	{
+		public bool DoReachabilityCheck { get; set; } = true;
+		public bool UsesLattice { get; set; } = false;
+		public bool CondensePaths { get; set; } = true;
+	}
+
 	public class RectifyPathfinder
 	{
+		PathfinderParameters InstanceParams { get; set; }
+
 		protected class PathQuery
 		{
 			public readonly RectifyRectangle startRect;
@@ -611,16 +620,19 @@ namespace RectifyUtils
 			}
 		}
 
-		private readonly List<PathQuery> pathCache = new List<PathQuery>();
-		private readonly int pathCacheSize = 0;
 		public bool IsDirty { get; private set; }
-		public bool IsLattice { get; private set; }
 
-		public RectifyPathfinder(List<RectifyRectangle> rectNodes, bool isLattice, int pathCacheSize = 20)
+
+		public RectifyPathfinder(List<RectifyRectangle> rectNodes, PathfinderParameters pParams = null)
 		{
 			this.RectNodes = rectNodes;
-			this.pathCacheSize = pathCacheSize;
-			this.IsLattice = isLattice;
+
+			SetParameters(pParams ?? new PathfinderParameters());
+		}
+
+		private void SetParameters(PathfinderParameters pathfinderParameters)
+		{
+			this.InstanceParams = pathfinderParameters;
 		}
 
 
@@ -787,45 +799,17 @@ namespace RectifyUtils
 			//find path rectangles
 			RectifyRectangle startRect = FindRectangleAroundPoint(startPosition);
 			RectifyRectangle endRect = FindRectangleAroundPoint(endPosition);
-			//early out
-			//if (startRect == endRect)
-			//{
-			//	//can move directly to destination b/c it's within the same rectangle
-			//	return new List<Position>() { startPosition, endPosition };
-			//}
-			//construct path query to see if it's in the cache
-			PathQuery cacheQuery = new PathQuery(startRect, endRect, edgeTypesFromMask, GetNearestNeighbors(startRect, startPosition, edgeTypesFromMask), GetNearestNeighbors(endRect, endPosition, edgeTypesFromMask), null);
-			PathQuery cacheResult = null; // pathCache.Find(c => c.Equals(cacheQuery));
-			if (cacheResult != null)
-			{
-				//return cached path w/ current start / end position
 
-				//move cached path to the top of the list;
-				pathCache.Remove(cacheResult);
-				pathCache.Insert(0, cacheResult);
 
-				List<Position> path = new List<Position>(cacheResult.pathNodes)
-				{
-					endPosition
-				};
-				path.Insert(0, startPosition);
-
-				//hit the cache, so no processing at all.
-				if (metrics != null)
-				{
-					metrics.FrontierSize = 0;
-					metrics.VisitedNodes = 0;
-				}
-
-				return path;
-			}
-			else
 			{
 				//determine reachability 
-				if (GetRecursiveNeighbors(startRect, endRect, edgeTypesFromMask) == false)
+				if (InstanceParams.DoReachabilityCheck)
 				{
-					//destination not reachable.
-					return new List<Position>();
+					if (GetRecursiveNeighbors(startRect, endRect, edgeTypesFromMask) == false)
+					{
+						//destination not reachable.
+						return new List<Position>();
+					}
 				}
 
 				//calculate the whole path
@@ -836,25 +820,6 @@ namespace RectifyUtils
 					//no path found
 					return path;
 				}
-
-				//copy & remove the first/last nodes
-				List<Position> cachePath = new List<Position>(path);
-				cachePath.RemoveAt(0);
-				cachePath.RemoveAt(cachePath.Count - 1);
-
-				//set the cachePath on the cacheQuery we constructed earlier (it's still valid)
-				cacheQuery.pathNodes = cachePath;
-
-				//remove the extra neighbor nodes by getting the first rectangle from the path that isn't the start rectangle.
-				//first, get the rect immediately after the startRect
-				TrimNeighbors(startRect, cacheQuery.nearestStartNeighbors, cachePath, false);
-				TrimNeighbors(endRect, cacheQuery.nearestStartNeighbors, cachePath, false);
-
-				//and the same from the end node
-				//intentionally broke
-
-				//cache
-				pathCache.Insert(0, cacheQuery);
 
 				//add metrics if requested
 				if (metrics != null)
@@ -868,29 +833,12 @@ namespace RectifyUtils
 
 		}
 
-		///// <summary>
-		///// reduce each value by 1, then halve.
-		///// </summary>
-		///// <param name="path"></param>
-		///// <returns></returns>
-		//private List<Position> TranslatePath(List<Position> path)
-		//{
-		//	List<Position> translatedPath = new List<Position>();
-		//	foreach (Position p in path)
-		//	{
-		//		//these points don't reflect traversable nodes
-		//		if (p.xPos % 2 == 0 || p.yPos % 2 == 0) continue;
-
-		//		var newPos = new Position((p.xPos - 1) / 2, (p.yPos - 1) / 2);
-		//		translatedPath.Add(newPos);
-		//	}
-
-		//	return translatedPath;
-		//}
-
 		/// <summary>
 		/// If the nearest neighbors for the start / endpoints are in the same order, any path between start / end rect must be the same.
 		/// Anything further away than the actual path taken can be discounted as non-optimal. (I think)
+		/// 
+		/// Update from the future: Almost - can't use the neighbor, have to use each possible exit space, but otherwise, correct idea.
+		/// Need to update this method to reflect that, but we're also removing caching at the moment, so this is just defunct at present
 		/// </summary>
 		/// <param name="startRect"></param>
 		/// <param name="neighbors"></param>
@@ -1089,56 +1037,7 @@ namespace RectifyUtils
 
 			return false;
 
-
 		}
-
-		///// <summary>
-		///// Generate RectifyNodes for the "macro edge" for use in Rectangular Symmetry Reduction.
-		///// A 1x1 Rect returns a single node. a 2x2 rect returns 4 nodes, a 3x3 rect returns the outer 8, etc.
-		///// 1xN and 2xN return every node. Most effective for larger rectangles
-		///// </summary>
-		///// <returns></returns>
-		//internal List<RectifyNode> GetNodesForRectangle(RectifyRectangle rect)
-		//{
-		//	if (rect.Width == 1 && rect.Height == 1)
-		//	{
-		//		return new List<RectifyNode>(){
-		//			new RectifyNode(rect, rect.Offset)
-		//			{
-		//				Left = new NodeNeighbor(rect.LeftEdge[0], Direction.West),
-		//				Right = new NodeNeighbor(rect.RightEdge[0], Direction.East),
-		//				Top = new NodeNeighbor(rect.TopEdge[0], Direction.North),
-		//				Bottom = new NodeNeighbor(rect.BottomEdge[0], Direction.South)
-		//			}
-		//		};
-		//	}
-
-		//	var topNodes = new RectifyNode[rect.Width];
-		//	var botNodes = new RectifyNode[rect.Width];
-
-		//	for(int x = 0; x < rect.Width; x++)
-		//	{
-		//		topNodes[x] = new RectifyNode(rect, new Position(rect.Offset.xPos + x, rect.Top));
-		//		botNodes[x] = new RectifyNode(rect, new Position(rect.Offset.xPos + x, rect.Bottom));
-		//	}
-
-		//	var leftNodes = new RectifyNode[rect.Height];
-		//	var rightNodes = new RectifyNode[rect.Height];
-
-		//	//don't create extra corner nodes
-		//	for(int y = 1; y < rect.Height-1; y++)
-		//	{
-		//		leftNodes[y] = new RectifyNode(rect, new Position(rect.Left, rect.Offset.yPos + y));
-		//		rightNodes[y] = new RectifyNode(rect, new Position(rect.Right, rect.Offset.yPos + y));
-		//	}
-		//	//set corners
-		//	leftNodes[0] = botNodes[0];
-		//	leftNodes[rect.Height - 1] = topNodes[0];
-		//	rightNodes[0] = botNodes[rect.Width - 1];
-		//	rightNodes[rect.Height - 1] = topNodes[rect.Width - 1];
-
-		//	//set neighborNodes
-		//}
 
 		private HashSet<RectifyRectangle> GetNeighborsSimple(RectifyRectangle rect, HashSet<EdgeType> edgeTypesFromMask)
 		{
@@ -1259,9 +1158,6 @@ namespace RectifyUtils
 
 			if (foundGoal == false)
 			{
-				//should never get here b/c we test pathability earlier.
-				//maybe remove that now that we're not using janky pathfinding
-				//shenannigans?
 				visitedNodeCount = visitedNodes.Count;
 				frontierNodeCount = frontierNodes.Count;
 				return new List<Position>();
@@ -1283,20 +1179,30 @@ namespace RectifyUtils
 
 				//TODO: Make this optional
 				//condense the paths if they're in the same node.
-				var groupedPaths = reversePath.GroupBy(n => n.NodeRect);
-				List<Position> finalPath = new List<Position>();
-				foreach (var rectPos in groupedPaths)
+				if (InstanceParams.CondensePaths)
 				{
-					finalPath.Add(rectPos.First().Position);
-					if (rectPos.Count() > 1)
+					var groupedPaths = reversePath.GroupBy(n => n.NodeRect);
+					List<Position> finalPath = new List<Position>();
+					foreach (var rectPos in groupedPaths)
 					{
-						finalPath.Add(rectPos.Last().Position);
+						finalPath.Add(rectPos.First().Position);
+						if (rectPos.Count() > 1)
+						{
+							finalPath.Add(rectPos.Last().Position);
+						}
 					}
-				}
-				visitedNodeCount = visitedNodes.Count;
-				frontierNodeCount = frontierNodes.Count;
+					visitedNodeCount = visitedNodes.Count;
+					frontierNodeCount = frontierNodes.Count;
 
-				return finalPath;
+					return finalPath;
+				}
+				else
+				{
+					visitedNodeCount = visitedNodes.Count;
+					frontierNodeCount = frontierNodes.Count;
+
+					return reversePath.Select(s => s.Position).ToList();
+				}
 			}
 		}
 
