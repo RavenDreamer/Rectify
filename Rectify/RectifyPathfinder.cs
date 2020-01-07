@@ -477,17 +477,6 @@ namespace RectifyUtils
 
 		}
 
-
-		/// <summary>
-		/// Changes the pathgroup at the given Position & its surrounding edges, splitting one rectangle into 3-5.
-		/// </summary>
-		/// <param name="position"></param>
-		/// <param name="pathGroup"></param>
-		/// <returns></returns>
-		public List<RectangleBounds> ReplaceCellAndEdgesAt(Position position, int pathGroup)
-		{
-			throw new NotImplementedException();
-		}
 		/// <summary>
 		/// Used for lattice Pathfinders. Use left or bottom cell depending on horiz / vert switch.
 		/// Treat as if replacing a cell, then add the new edge to both rects that contain that point;
